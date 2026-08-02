@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <!-- [BREADCRUMB: V17 - FINAL PRINT & VERTICAL LEGS FIX]
+         FEHLER 1: Fehlende CSS-Klammer zerstörte das PDF-Layout.
+         FEHLER 2: Stützen rotierten fälschlicherweise mit dem Bandwinkel mit (seitlicher Pfeil-Versatz).
+         LÖSUNG: CSS repariert, Drucktabelle hinzugefügt. Stützen rendern nun isoliert vom Bandwinkel absolut lotrecht. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Förderband Baukasten Pro</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f4f6f8;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 320px;
+            background-color: #1e293b;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+            #sidebar h2 {
+                font-size: 1.2rem;
+                text-transform: uppercase;
+                color: #38bdf8;
+                border-bottom: 1px solid #334155;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+        .meta-box {
+            background: #334155;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px dashed #475569;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+
+            .meta-label:first-child {
+                margin-top: 0;
+            }
+
+        .meta-val {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .sidebar-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+            .sidebar-actions button {
+                flex: 1;
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+
+        .section-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .item-card {
+            background-color: #334155;
+            border: 1px dashed #475569;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+            .item-card:hover {
+                border-color: #38bdf8;
+                background-color: #475569;
+            }
+
+            .item-card h3 {
+                font-size: 0.95rem;
+                margin-bottom: 0px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+        .gear-btn, .action-icon {
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+            .gear-btn:hover, .action-icon:hover {
+                background: #1e293b;
+            }
+
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #475569;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+            .color-swatch:hover {
+                transform: scale(1.15);
+                border-color: #38bdf8;
+            }
+
+            .color-swatch.active {
+                border-color: #ffffff;
+                transform: scale(1.15);
+                box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            }
+
+        #main-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+        }
+
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 5;
+            align-items: center;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #0f172a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #475569;
+            transition: .2s;
+            border-radius: 20px;
+        }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 14px;
+                width: 14px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .2s;
+                border-radius: 50%;
+            }
+
+        input:checked + .slider {
+            background-color: #38bdf8;
+        }
+
+            input:checked + .slider:before {
+                transform: translateX(16px);
+            }
+
+        .btn {
+            background-color: #0f172a;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+
+            .btn:hover {
+                background-color: #1e293b;
+            }
+
+        .btn-danger {
+            background-color: #ef4444;
+        }
+
+            .btn-danger:hover {
+                background-color: #dc2626;
+            }
+
+        .btn-action {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
+            .btn-action:hover {
+                background-color: #0ea5e9;
+            }
+
+        canvas {
+            display: block;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+
+        #action-menu {
+            display: none;
+            position: absolute;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            padding: 12px 24px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            z-index: 100;
+            align-items: center;
+            gap: 15px;
+            color: #fff;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+            .control-group input[type="range"], .control-group select {
+                accent-color: #38bdf8;
+                cursor: pointer;
+                background: #0f172a;
+                color: #fff;
+                border: 1px solid #475569;
+                border-radius: 4px;
+                padding: 2px 4px;
+                outline: none;
+            }
+
+        .modal-overlay {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            z-index: 200;
+            color: #fff;
+            width: 320px;
+        }
+
+            .modal-overlay h3 {
+                font-size: 1rem;
+                color: #38bdf8;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+            }
+
+            .modal-overlay label {
+                font-size: 0.85rem;
+                color: #cbd5e1;
+                display: block;
+                margin-bottom: 6px;
+            }
+
+            .modal-overlay input[type="text"], .modal-overlay input[type="number"] {
+                width: 100%;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #475569;
+                background: #0f172a;
+                color: #fff;
+                margin-bottom: 15px;
+                outline: none;
+            }
+
+        .print-checkbox-group {
+            margin-bottom: 15px;
+        }
+
+            .print-checkbox-group label {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+                cursor: pointer;
+            }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+            .modal-btn-group button {
+                flex: 1;
+            }
+
+        #stats-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            color: #94a3b8;
+            border-top: 1px solid #334155;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            z-index: 50;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-val {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        #statik-info-modal {
+            width: 550px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .formula-box {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+            color: #38bdf8;
+            margin: 10px 0;
+            border: 1px solid #475569;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+            .formula-box .katex {
+                color: #38bdf8;
+            }
+
+        .info-text {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+            .info-text b {
+                color: #fff;
+            }
+
+        /* Print styles */
+        #print-header, #print-border, #print-report, #print-statics-table {
+            display: none;
+        }
+
+        /* [BREADCRUMB: V16 - FIX PRINT CSS OVERFLOW] */
+        @media print {
+            @page {
+                size: A2 landscape !important;
+                margin: 0;
+            }
+
+            body, html {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: #fff;
+            }
+
+            #sidebar, #toolbar, #stats-bar, #action-menu, .modal-overlay {
+                display: none !important;
+            }
+
+            #main-content {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: #fff;
+            }
+
+            canvas {
+                width: 100vw !important;
+                height: 100vh !important;
+                object-fit: contain;
+                image-rendering: crisp-edges;
+            }
+
+            #print-border {
+                display: block;
+                position: fixed;
+                top: 10mm;
+                left: 10mm;
+                right: 10mm;
+                bottom: 10mm;
+                border: 0.5mm solid #000;
+                pointer-events: none;
+                z-index: 998;
+            }
+
+            #print-report {
+                display: block;
+                position: fixed;
+                top: 15mm;
+                right: 15mm;
+                width: 70mm;
+                border: 0.35mm solid #000;
+                background: #fff;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 8pt;
+                z-index: 999;
+                padding: 3mm;
+                color: #000;
+            }
+
+                #print-report h4 {
+                    font-size: 8.5pt;
+                    margin-bottom: 2mm;
+                    text-transform: uppercase;
+                    border-bottom: 0.25mm solid #000;
+                    padding-bottom: 1mm;
+                }
+
+                #print-report .rep-row {
+                    margin-bottom: 1.5mm;
+                }
+
+            #print-header {
+                display: block;
+                position: fixed;
+                bottom: 10mm;
+                right: 10mm;
+                width: 110mm;
+                border: 0.35mm solid #000;
+                background: #fff;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                z-index: 999;
+                color: #000;
+            }
+
+            /* Neue Tabelle für die Kräfte unten links */
+            #print-statics-table {
+                display: block !important;
+                position: fixed;
+                bottom: 10mm;
+                left: 10mm;
+                width: 32mm; /* Deutlich schmalere Tabelle */
+                border: 0.35mm solid #000;
+                background: #fff;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 8pt;
+                z-index: 999;
+                color: #000;
+            }
+
+            .tb-row {
+                display: flex;
+                border-bottom: 0.25mm solid #000;
+            }
+
+                .tb-row:last-child {
+                    border-bottom: none;
+                }
+
+            .tb-cell {
+                padding: 1.5mm;
+                border-right: 0.25mm solid #000;
+                font-size: 7pt;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+                .tb-cell:last-child {
+                    border-right: none;
+                }
+
+            .tb-label {
+                font-size: 4.5pt;
+                color: #555;
+                text-transform: uppercase;
+                margin-bottom: 0.5mm;
+            }
+
+            .tb-val {
+                font-weight: bold;
+            }
+
+            .tb-logo {
+                background: #fff; /* Reines Weiß für Feng-Shui Ästhetik */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="print-border"></div>
+    <div id="print-report">
+        <h4>Anlagen-Bericht</h4>
+        <div class="rep-row" id="print-report-elements"></div>
+        <div class="rep-row" id="print-report-weight" style="font-weight: bold; margin-top: 2mm;"></div>
+    </div>
+
+    <!-- [BREADCRUMB: V20 - REMOVE LOGO DROP-SHADOW] -->
+    <div id="print-header">
+        <div class="tb-row">
+            <div class="tb-cell tb-logo" style="width: 100%; padding: 4mm 0; display: flex; justify-content: center; align-items: center;">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAAjJb2w86L8F8qhLZ2Pm1qh2vOXiwZZpsgvMTKa7iDCsxsuPAy4LD9CuM&s=10" alt="STAG Logo" style="max-height: 13mm; object-fit: contain;">
+            </div>
+        </div>
+        <div class="tb-row">
+            <div class="tb-cell" style="flex: 2;">
+                <div class="tb-label">Projekt / Objekt-Nr.</div>
+                <div class="tb-val" id="print-obj-nr">OBJEKT-NR.</div>
+            </div>
+            <div class="tb-cell" style="flex: 2;">
+                <div class="tb-label">Förderband-ID</div>
+                <div class="tb-val" id="print-fb-id">FÖRDERBAND-ID</div>
+                <div class="tb-label" style="margin-top: 1.5mm;">Ersteller</div>
+                <div class="tb-val" id="print-ersteller">STA</div>
+            </div>
+        </div>
+        <div class="tb-row">
+            <div class="tb-cell" style="flex: 1;">
+                <div class="tb-label">Datum</div>
+                <div class="tb-val" id="print-date"></div>
+            </div>
+            <div class="tb-cell" style="flex: 1;">
+                <div class="tb-label">Format</div>
+                <div class="tb-val">A2 Quer</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-statics-table">
+        <div style="font-weight:bold; padding: 2mm; border-bottom: 0.25mm solid #000; text-transform:uppercase;">Auflagerkräfte</div>
+        <div id="print-statics-table-content" style="padding: 2mm; line-height: 1.6;"></div>
+    </div>
+
+    <div id="sidebar">
+        <h2>Baukasten Pro <span class="action-icon" onclick="openMetaModal()" title="Projektdaten bearbeiten">📝</span></h2>
+        <div class="meta-box">
+            <div class="meta-label">Objekt-Nr.</div><div id="disp-obj-nr" class="meta-val">OBJEKT-NR.</div>
+            <div class="meta-label">Förderband-ID</div><div id="disp-fb-id" class="meta-val">FÖRDERBAND-ID</div>
+            <div class="meta-label">Ersteller</div><div id="disp-ersteller" class="meta-val">-</div>
+        </div>
+        <div class="sidebar-actions">
+            <button class="btn btn-action" onclick="saveStagFile()">💾 .stag Speichern</button>
+            <button class="btn btn-action" onclick="document.getElementById('file-loader').click()">📂 .stag Laden</button>
+            <input type="file" id="file-loader" style="display:none;" accept=".stag" onchange="loadStagFile(event)">
+        </div>
+        <button class="btn" style="margin-bottom: 20px;" onclick="openPrintModal()">🖨️ Drucken (A2)</button>
+
+        <div class="section-title">Bandelemente</div>
+        <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '2480.svg')">
+            <h3>Bandelement 2480 <span class="gear-btn" onclick="openSettings('2480.svg')">⚙️</span></h3>
+        </div>
+        <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '3720.svg')">
+            <h3>Bandelement 3720 <span class="gear-btn" onclick="openSettings('3720.svg')">⚙️</span></h3>
+        </div>
+
+        <div class="section-title">Peripherie & Knick</div>
+        <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addKnickModule()">
+            <h3>Knick-Modul <span class="gear-btn" onclick="openSettings('knick')">⚙️</span></h3>
+        </div>
+        <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'antriebstation.svg')">
+            <h3>Antriebsstation <span class="gear-btn" onclick="openSettings('antriebstation.svg')">⚙️</span></h3>
+        </div>
+        <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'Spannstation.svg')">
+            <h3>Spannstation <span class="gear-btn" onclick="openSettings('Spannstation.svg')">⚙️</span></h3>
+        </div>
+        <div class="section-title">Stützen</div>
+        <div class="item-card" onclick="addStuetzfuss()"><h3>Stützfuß (Teleskop)</h3></div>
+    </div>
+
+    <div id="main-content">
+        <div id="stats-bar">
+            <div class="stat-item"><span style="color: #38bdf8; font-weight: bold; text-transform: uppercase;">Anlagen-Statistik:</span><span id="stat-elements" class="stat-val">Bänder: 0x 2480 | 0x 3720 &nbsp;&nbsp;&bull;&nbsp;&nbsp; Knicke: 0</span></div>
+            <div class="stat-item"><span id="stat-weight" class="stat-val" style="color: #38bdf8; font-size: 0.95rem;">Gesamtgewicht: 0 kg</span></div>
+        </div>
+
+        <div id="toolbar">
+            <button class="btn btn-action" onclick="openStatikInfoModal()">ℹ️ Statik Info</button>
+            <div class="toggle-container"><label for="toggle-einzugsflaechen">Stabmodell</label><label class="switch"><input type="checkbox" id="toggle-einzugsflaechen" onchange="draw()"><span class="slider"></span></label></div>
+            <div class="toggle-container"><label for="toggle-forces">Statik (Kräfte)</label><label class="switch"><input type="checkbox" id="toggle-forces" checked onchange="draw()"><span class="slider"></span></label></div>
+            <div class="toggle-container"><label for="toggle-koten">Höhenkoten</label><label class="switch"><input type="checkbox" id="toggle-koten" checked onchange="draw()"><span class="slider"></span></label></div>
+            <div class="toggle-container"><label for="toggle-massketten">Maßketten</label><label class="switch"><input type="checkbox" id="toggle-massketten" checked onchange="draw()"><span class="slider"></span></label></div>
+            <button class="btn" onclick="smartCenterView()">Ansicht Zentrieren</button>
+            <button class="btn btn-danger" onclick="clearCanvas()">Alles Löschen</button>
+        </div>
+
+        <div id="action-menu">
+            <span style="color: #38bdf8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Aktion:</span>
+            <div id="leg-controls" style="display: none;" class="control-group"><label>Hub:</label><input type="range" id="slider-extension" min="0" max="250" value="0" oninput="updateLegExtension(this.value)"><span id="val-extension" style="width: 40px;">0mm</span></div>
+            <div id="leg-base-controls" style="display: none;" class="control-group"><label>Unterbau:</label><select id="select-base-type" onchange="updateLegBase(this.value)"><option value="none">Keiner</option><option value="sockel">Betonsockel</option><option value="heb120">HEB 120 Profil</option></select></div>
+            <div id="leg-sockel-controls" style="display: none;" class="control-group"><label>Höhe:</label><input type="range" id="slider-sockel-height" min="150" max="400" value="150" step="10" oninput="updateSockelHeight(this.value)"><span id="val-sockel-height" style="width: 45px;">150mm</span></div>
+            <div id="knick-controls" style="display: none;" class="control-group"><label>Knick-Winkel:</label><input type="range" id="slider-knick-angle" min="-4.0" max="10.0" step="0.5" value="8.0" oninput="updateKnickAngle(this.value)"><span id="val-knick-angle">8.0°</span></div>
+            <div id="band-angle-controls" style="display: none;" class="control-group"><label>Neigung Bandreihe:</label><input type="range" id="slider-band-angle" min="-20" max="20" step="0.5" value="0" oninput="updateBandChainAngle(this.value)"><span id="val-band-angle">0°</span></div>
+            <button id="btn-mirror" class="btn btn-action" style="display:none;" onclick="mirrorSelected()">↔ Spiegeln</button>
+            <button id="btn-array" class="btn btn-action" style="display:none;" onclick="openArrayModal()">⋮⋮⋮ Anordnung</button>
+            <button id="btn-replace" class="btn btn-action" style="display:none;" onclick="replaceSelected()">🔄 Ersetzen mit...</button>
+            <button id="btn-detach" class="btn" style="display:none;" onclick="detachSelected()">✂ Trennen</button>
+            <button class="btn btn-danger" onclick="deleteSelected()">🗑 Löschen</button>
+        </div>
+
+        <div id="meta-modal" class="modal-overlay">
+            <h3>Projektdaten</h3>
+            <label>Objekt-Nr.</label><input type="text" id="input-obj-nr" oninput="this.value = this.value.toUpperCase()" placeholder="OBJEKT-NR.">
+            <label>Förderband-ID</label><input type="text" id="input-fb-id" placeholder="FÖRDERBAND-ID">
+            <label>Ersteller (Kürzel)</label><input type="text" id="input-ersteller" maxlength="3" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '')" placeholder="STA">
+            <div class="modal-btn-group"><button class="btn btn-action" onclick="saveMetaModal()">Speichern</button><button class="btn" onclick="closeMetaModal()">Abbrechen</button></div>
+        </div>
+
+        <div id="array-modal" class="modal-overlay">
+            <h3>Anordnung erstellen</h3>
+            <label for="array-count">Anzahl neuer Elemente:</label><input type="number" id="array-count" min="1" max="20" value="2">
+            <label>Richtung auswählen:</label>
+            <div class="modal-btn-group" style="margin-bottom: 15px;"><button class="btn btn-action" onclick="executeArray(-1)">← Links</button><button class="btn btn-action" onclick="executeArray(1)">Rechts →</button></div>
+            <button class="btn" style="width: 100%;" onclick="closeArrayModal()">Abbrechen</button>
+        </div>
+
+        <div id="print-modal" class="modal-overlay">
+            <h3>Ansicht Drucken (A2)</h3>
+            <div class="print-checkbox-group">
+                <label><input type="checkbox" id="print-opt-forces" checked> Statik (Kräfte) mitdrucken</label>
+                <label><input type="checkbox" id="print-opt-koten" checked> Höhenkoten mitdrucken</label>
+                <label><input type="checkbox" id="print-opt-massketten" checked> Maßketten mitdrucken</label>
+            </div>
+            <div class="modal-btn-group">
+                <button class="btn btn-action" onclick="executePrint()">🖨️ Drucken / PDF</button>
+                <button class="btn" onclick="closePrintModal()">Abbrechen</button>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="modal-overlay">
+            <h3 id="settings-title">Einstellungen</h3>
+            <label id="settings-weight-label" for="settings-weight-input">Gewicht</label><input type="number" id="settings-weight-input" min="0">
+            <label>Farbe (für alle Bauteile dieses Typs)</label>
+            <div class="color-palette" style="margin-bottom: 20px;">
+                <div class="color-swatch" data-color="#0f172a" style="background-color: #0f172a;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#2563eb" style="background-color: #2563eb;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#16a34a" style="background-color: #16a34a;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#dc2626" style="background-color: #dc2626;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#d97706" style="background-color: #d97706;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#9333ea" style="background-color: #9333ea;" onclick="selectSettingColor(this)"></div>
+                <div class="color-swatch" data-color="#475569" style="background-color: #475569;" onclick="selectSettingColor(this)"></div>
+            </div>
+            <div class="modal-btn-group"><button class="btn btn-action" onclick="applySettings()">Speichern</button><button class="btn" onclick="closeSettings()">Abbrechen</button></div>
+        </div>
+
+        <div id="statik-info-modal" class="modal-overlay">
+            <h3>Statik-Berechnungsgrundlagen</h3>
+            <div id="statik-info-content"></div>
+            <button class="btn" style="width: 100%; margin-top: 15px;" onclick="closeStatikInfoModal()">Schließen</button>
+        </div>
+
+        <canvas id="stage" tabindex="0"></canvas>
+    </div>
+
+    <script>
+        // ==========================================
+        // MODULE 1: STATE & GLOBALS
+        // ==========================================
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const svgCache = {};
+        const tintedImgCache = {};
+
+        const SCALE_GLOBAL = 0.2;
+        let scale = 1, panX = 100, panY = 100;
+        let isDraggingCanvas = false, draggedElement = null;
+
+        let selectedElements = [];
+        let dragGroup = [];
+        let lastMouseWorld = {x: 0, y: 0};
+
+        let elements = [];
+        let projMeta = { objNr: "OBJEKT-NR.", fbId: "FÖRDERBAND-ID", ersteller: "" };
+        const moduleSettings = {
+            '2480.svg': { title: 'Bandelement 2480', weightMode: 'per_m', weightVal: 350, length: 2.48, color: '#0f172a' },
+            '3720.svg': { title: 'Bandelement 3720', weightMode: 'per_m', weightVal: 350, length: 3.72, color: '#0f172a' },
+            'knick': { title: 'Knick-Modul', weightMode: 'total', weightVal: 500, color: '#0f172a' },
+            'antriebstation.svg': { title: 'Antriebsstation', weightMode: 'total', weightVal: 3000, color: '#0f172a' },
+            'Spannstation.svg': { title: 'Spannstation', weightMode: 'total', weightVal: 1300, color: '#0f172a' }
+        };
+        let currentSettingKey = null;
+
+        window.addEventListener('resize', () => {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            draw();
+        });
+        window.dispatchEvent(new Event('resize'));
+        canvas.addEventListener('keydown', (e) => { if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected(); });
+
+        // ==========================================
+        // MODULE 2: UI, MODALS & PRINT
+        // ==========================================
+        function openMetaModal() {
+            document.getElementById('input-obj-nr').value = projMeta.objNr === "OBJEKT-NR." ? "" : projMeta.objNr;
+            document.getElementById('input-fb-id').value = projMeta.fbId === "FÖRDERBAND-ID" ? "" : projMeta.fbId;
+            document.getElementById('input-ersteller').value = projMeta.ersteller;
+            document.getElementById('meta-modal').style.display = 'block';
+        }
+        function closeMetaModal() { document.getElementById('meta-modal').style.display = 'none'; }
+        function saveMetaModal() {
+            projMeta.objNr = document.getElementById('input-obj-nr').value.trim() || "OBJEKT-NR.";
+            projMeta.fbId = document.getElementById('input-fb-id').value.trim() || "FÖRDERBAND-ID";
+            projMeta.ersteller = document.getElementById('input-ersteller').value.trim();
+            document.getElementById('disp-obj-nr').innerText = projMeta.objNr;
+            document.getElementById('disp-fb-id').innerText = projMeta.fbId;
+            document.getElementById('disp-ersteller').innerText = projMeta.ersteller || "-";
+            closeMetaModal();
+        }
+        function openArrayModal() { document.getElementById('array-modal').style.display = 'block'; }
+        function closeArrayModal() { document.getElementById('array-modal').style.display = 'none'; }
+        function openPrintModal() { document.getElementById('print-modal').style.display = 'block'; }
+        function closePrintModal() { document.getElementById('print-modal').style.display = 'none'; }
+
+        function openStatikInfoModal() {
+            const container = document.getElementById('statik-info-content');
+            let html = '';
+            if (typeof getSystems !== 'function') { container.innerHTML = '<div class="info-text">System noch nicht bereit.</div>'; document.getElementById('statik-info-modal').style.display = 'block'; return; }
+            let systems = getSystems();
+
+            if (systems.length === 0) {
+                html = '<div class="info-text">Kein auswertbares System auf der Zeichenfläche.</div>';
+            } else {
+                systems.forEach((group, sysIdx) => {
+                    let totalWeight = 0; let momentSum = 0; let minX = Infinity, maxX = -Infinity;
+                    group.forEach(el => {
+                        let p = getElementWeightProfile(el);
+                        if (p) { totalWeight += p.weight; momentSum += p.weight * p.cgX; if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX; }
+                    });
+
+                    let legs = group.filter(e => e.type === 'assembly_leg');
+                    let legItems = legs.map(leg => { let arrowTipWorld = getLegBottomWorldCenter(leg); return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y }; }).sort((a, b) => a.x - b.x);
+
+                    let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+                    let F_tot_kN = totalWeight * 9.81 / 1000;
+                    let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+                    let spanMeter = (totalSpan / SCALE_GLOBAL / 1000).toFixed(2);
+
+                    html += `<div style="border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 15px;">`;
+                    html += `<h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 1rem;">System ${sysIdx + 1}</h4>`;
+                    html += `<div class="info-text"><b>Systemlänge ($L_{ges}$):</b> ${spanMeter} m<br><b>Gesamtgewicht:</b> ${totalWeight.toFixed(1)} kg<br><b>Resultierende Gewichtskraft ($F_{ges}$):</b> ${F_tot_kN.toFixed(2)} kN</div>`;
+
+                    if (legItems.length === 0) {
+                        html += `<div class="info-text" style="color: #ef4444;">Achtung: Keine Stützen! Instabil.</div>`;
+                    } else if (legItems.length === 1) {
+                        html += `<div class="info-text"><b>Statisches System:</b> 1 Stütze (Kragarm)</div>`;
+                        html += `<div class="formula-box">$$F_1 = F_{ges} = ${F_tot_kN.toFixed(2)} \\text{ kN}$$</div>`;
+                    } else if (legItems.length === 2) {
+                        let x1 = legItems[0].x; let x2 = legItems[1].x;
+                        let L_px = x2 - x1; let L_m = (L_px / SCALE_GLOBAL / 1000).toFixed(2);
+                        let a_px = X_cg - x1; let a_m = (a_px / SCALE_GLOBAL / 1000).toFixed(2);
+
+                        html += `<div class="info-text"><b>Statisches Modell:</b> Statisch bestimmt (Momentengleichgewicht $\\sum M_1 = 0$) mit asymmetrischem Schwerpunkt:</div>`;
+
+                        if (Math.abs(L_px) < 1) {
+                            html += `<div class="info-text" style="color: #ef4444;">Stützen stehen am exakt gleichen Ort.</div>`;
+                        } else {
+                            let F2 = F_tot_kN * (a_px / L_px); let F1 = F_tot_kN - F2;
+                            html += `<div class="formula-box">$$F_2 = ${F_tot_kN.toFixed(2)} \\text{ kN} \\cdot \\frac{${a_m} \\text{ m}}{${L_m} \\text{ m}} = ${F2.toFixed(2)} \\text{ kN}$$</div>`;
+                            html += `<div class="formula-box">$$F_1 = F_{ges} - F_2 = ${F1.toFixed(2)} \\text{ kN}$$</div>`;
+                            if (F1 < 0 || F2 < 0) html += `<div class="info-text" style="color: #ef4444; margin-top:10px;"><b>WICHTIG:</b> Eine Stütze zieht nach oben (Zugkraft). Muss gegen Ausreißen verankert werden!</div>`;
+                        }
+                    } else {
+                        html += `<div class="info-text"><b>Statisches Modell:</b> Einzugsflächen (Tributary Areas)</div>`;
+                        html += `<div class="info-text">Die Streckenlasten der Einzelbauteile werden exakt auf die Einzugsflächen aufgeteilt (Antriebsstation asymmetrisch 1/3 zu 2/3):</div>`;
+                        legItems.forEach((item, i) => {
+                            let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
+                            let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
+                            let f_teil_kg = 0;
+                            group.forEach(el => { let p = getElementWeightProfile(el); if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound); });
+                            let f_teil_kN = f_teil_kg * 9.81 / 1000;
+                            let l_teil_m = ((rightBound - leftBound) / SCALE_GLOBAL / 1000).toFixed(2);
+                            html += `<div class="formula-box">$$F_{${i + 1}} = \\Sigma F_{Bauteile} = ${f_teil_kN.toFixed(2)} \\text{ kN} \\quad (L_{Einzug} = ${l_teil_m} \\text{ m})$$</div>`;
+                        });
+                    }
+                    html += `</div>`;
+                });
+            }
+            container.innerHTML = html;
+            if (typeof renderMathInElement === 'function') { renderMathInElement(container, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }); }
+            document.getElementById('statik-info-modal').style.display = 'block';
+        }
+        function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
+
+// [BREADCRUMB: V19 - BEREINIGTER A2-DRUCK & CLEAN TABLE]
+function executePrint() {
+    document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
+    document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
+    document.getElementById('toggle-massketten').checked = document.getElementById('print-opt-massketten').checked;
+
+    document.getElementById('print-obj-nr').innerText = projMeta.objNr;
+    document.getElementById('print-fb-id').innerText = projMeta.fbId;
+    document.getElementById('print-ersteller').innerText = projMeta.ersteller || "-";
+    document.getElementById('print-date').innerText = new Date().toLocaleDateString('de-DE');
+    document.getElementById('print-report-elements').innerHTML = document.getElementById('stat-elements').innerHTML;
+    document.getElementById('print-report-weight').innerHTML = document.getElementById('stat-weight').innerHTML;
+
+    // Statik-Tabelle befüllen (Ohne System 1 Headline)
+    let staticsTableHtml = '';
+    getSystems().forEach((group) => {
+        let totalWeight = 0; let momentSum = 0; let minX = Infinity, maxX = -Infinity;
+        group.forEach(el => {
+            let p = getElementWeightProfile(el);
+            if (p) { totalWeight += p.weight; momentSum += p.weight * p.cgX; if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX; }
+        });
+        let legs = group.filter(e => e.type === 'assembly_leg').map(leg => ({ leg, x: getLegBottomWorldCenter(leg).x })).sort((a, b) => a.x - b.x);
+        let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+        let F_tot = totalWeight * 9.81 / 1000;
+        let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+
+        if (legs.length === 1) {
+            staticsTableHtml += `F1 = ${F_tot.toFixed(2)} kN<br>`;
+        } else if (legs.length === 2) {
+            let L_px = legs[1].x - legs[0].x;
+            if (Math.abs(L_px) < 1) {
+                staticsTableHtml += `F1 = ${(F_tot / 2).toFixed(2)} kN<br>F2 = ${(F_tot / 2).toFixed(2)} kN<br>`;
+            } else {
+                let a_px = X_cg - legs[0].x;
+                let F2 = F_tot * (a_px / L_px); let F1 = F_tot - F2;
+                staticsTableHtml += `F1 = ${F1.toFixed(2)} kN ${F1 < 0 ? '(ZUG)' : ''}<br>`;
+                staticsTableHtml += `F2 = ${F2.toFixed(2)} kN ${F2 < 0 ? '(ZUG)' : ''}<br>`;
+            }
+        } else if (legs.length > 2) {
+            legs.forEach((item, i) => {
+                let leftBound = i === 0 ? minX : (legs[i - 1].x + item.x) / 2;
+                let rightBound = i === legs.length - 1 ? maxX : (item.x + legs[i + 1].x) / 2;
+                let f_teil_kg = 0;
+                group.forEach(el => { let p = getElementWeightProfile(el); if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound); });
+                let f_kN = f_teil_kg * 9.81 / 1000;
+                staticsTableHtml += `F${i + 1} = ${f_kN.toFixed(2)} kN<br>`;
+            });
+        }
+    });
+    document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+    closePrintModal();
+
+    let printStyleEl = document.getElementById('dynamic-print-style');
+    if (!printStyleEl) {
+        printStyleEl = document.createElement('style');
+        printStyleEl.id = 'dynamic-print-style';
+        document.head.appendChild(printStyleEl);
+    }
+
+    // Hardcode A2 Layout
+    printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
+    let printW_px = 594 * 3.7795;
+    let printH_px = 420 * 3.7795;
+
+    window.isPrintingActive = true;
+    window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
+
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = printW_px * window.printDpr;
+    canvas.height = printH_px * window.printDpr;
+
+    smartCenterView(true, printW_px, printH_px);
+    draw();
+
+    const originalTitle = document.title;
+    const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ?
+        `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
+    document.title = pdfName;
+
+    setTimeout(() => {
+        window.print();
+        document.title = originalTitle;
+        window.isPrintingActive = false;
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        smartCenterView(false);
+        draw();
+    }, 500);
+}
+
+        function openSettings(key) {
+            currentSettingKey = key; const set = moduleSettings[key];
+            document.getElementById('settings-title').innerText = set.title;
+            document.getElementById('settings-weight-label').innerText = set.weightMode === 'per_m' ? 'Gewicht (kg/lfm)' : 'Gesamtgewicht (kg)';
+            document.getElementById('settings-weight-input').value = set.weightVal;
+            document.querySelectorAll('#settings-modal .color-swatch').forEach(s => { s.classList.remove('active'); if (s.dataset.color === set.color) s.classList.add('active'); });
+            document.getElementById('settings-modal').style.display = 'block';
+        }
+        function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; currentSettingKey = null; }
+        function selectSettingColor(el) { document.querySelectorAll('#settings-modal .color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); }
+        async function applySettings() {
+            if (!currentSettingKey) return;
+            const set = moduleSettings[currentSettingKey];
+            set.weightVal = parseFloat(document.getElementById('settings-weight-input').value) || 0;
+            const activeSwatch = document.querySelector('#settings-modal .color-swatch.active');
+            if (activeSwatch) { set.color = activeSwatch.dataset.color; }
+            for (let el of elements) {
+                if (getElementKey(el) === currentSettingKey) {
+                    el.color = set.color;
+                    if (el.type === 'knick') { el.flangeImg = await getTintedImage(el.flangeFilename, set.color); el.detailsImg = await getTintedImage(el.detailsFilename, set.color); }
+                    else if (el.filename) { el.img = await getTintedImage(el.filename, set.color); }
+                }
+            }
+            closeSettings(); updateStats(); draw();
+        }
+        function updateStats() {
+            let totalWeight = 0; let count2480 = 0; let count3720 = 0; let knickCounts = {}; let visited = new Set();
+            elements.forEach(el => {
+                if (visited.has(el)) return;
+                let group = getConnectedGroup(el); group.forEach(g => visited.add(g));
+                let hasBand = group.some(g => g.filename && (g.filename.includes('2480') || g.filename.includes('3720')));
+                if (!hasBand) return;
+                group.forEach(g => {
+                    let key = getElementKey(g); if (!key) return; let set = moduleSettings[key];
+                    if (set) totalWeight += (set.weightMode === 'per_m') ? set.weightVal * set.length : set.weightVal;
+                    if (key === '2480.svg') count2480++; if (key === '3720.svg') count3720++;
+                    if (g.type === 'knick') { let ang = g.knickAngle.toFixed(1) + '°'; knickCounts[ang] = (knickCounts[ang] || 0) + 1; }
+                });
+            });
+            let knickStr = Object.entries(knickCounts).map(([ang, count]) => `${count}x ${ang}`).join(', ');
+            if (!knickStr) knickStr = '0';
+            document.getElementById('stat-weight').innerText = `Gesamtgewicht: ${Math.round(totalWeight).toLocaleString('de-DE')} kg`;
+            document.getElementById('stat-elements').innerHTML = `<b>Bänder:</b> ${count2480}x 2480 | ${count3720}x 3720 &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;&nbsp;&nbsp;&nbsp; <b>Knicke:</b> ${knickStr}`;
+        }
+
+        // ==========================================
+        // MODULE 3: FILE I/O (.stag)
+        // ==========================================
+        function saveStagFile() {
+            const exportData = {
+                meta: projMeta, settings: moduleSettings,
+                elements: elements.map(el => {
+                    let clean = { ...el }; delete clean.img; delete clean.detailsImg; delete clean.flangeImg; delete clean.bodyData; delete clean.detailsData; delete clean.parts; delete clean.baseData; delete clean.baseImg; clean.parentId = el.parent ? el.parent.id : null; delete clean.parent; return clean;
+                })
+            };
+            const blob = new Blob([JSON.stringify(exportData)], { type: "text/plain" });
+            const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${projMeta.objNr}_${projMeta.fbId}.stag`; a.click();
+        }
+        async function loadStagFile(e) {
+            const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result); clearCanvas();
+                    projMeta = data.meta; if(!projMeta.ersteller) projMeta.ersteller = "";
+                    document.getElementById('disp-obj-nr').innerText = projMeta.objNr; document.getElementById('disp-fb-id').innerText = projMeta.fbId; document.getElementById('disp-ersteller').innerText = projMeta.ersteller || "-";
+                    Object.assign(moduleSettings, data.settings);
+                    let loadedElements = [];
+                    for (let saved of data.elements) {
+                        let rebuilt = { ...saved, parent: null };
+                        if (saved.type === 'assembly_leg') {
+                            rebuilt.parts = { stuetze: await loadSVG('stütze.svg'), teleskop: await loadSVG('teleskopstange.svg'), platte: await loadSVG('stützplatte.svg') };
+                            if (saved.baseType === 'heb120') { rebuilt.baseData = await loadSVG('HEB120.svg'); rebuilt.baseImg = await getTintedImage('HEB120.svg', saved.color || '#0f172a'); }
+                        } else if (saved.type === 'knick') {
+                            rebuilt.bodyData = await loadSVG('knick_body.svg'); rebuilt.detailsData = await loadSVG('knick_body_details.svg');
+                            rebuilt.detailsImg = await getTintedImage('knick_body_details.svg', saved.color); rebuilt.flangeImg = await getTintedImage('knick_flange.svg', saved.color);
+                        } else { rebuilt.img = await getTintedImage(saved.filename, saved.color); }
+                        loadedElements.push(rebuilt);
+                    }
+                    loadedElements.forEach(el => { if (el.parentId) el.parent = loadedElements.find(p => p.id === el.parentId) || null; });
+                    elements = loadedElements; updateStats(); smartCenterView();
+                } catch (err) { alert("Fehler beim Laden der .stag Datei."); }
+                document.getElementById('file-loader').value = "";
+            };
+            reader.readAsText(file);
+}
+
+// ==========================================
+// MODULE 4: MATH & GEOMETRY
+// Reines Rechnen: Transformationsmatrizen, Bounding-Boxen und Connector-Logik
+// ==========================================
+
+// [BREADCRUMB: V18 - KOORDINATENSYSTEM & ROTATIONS-FIX]
+// PROBLEM: Bei geneigten Bändern verschoben sich die Stützen-Koordinaten leicht seitlich,
+// da Matrizen in der falschen Reihenfolge aufgelöst wurden (Local -> World vs World -> Local).
+// LÖSUNG: Strikte Umkehrung (.reverse()) der Operationen für alle Transformationen
+// von lokalen SVG-Punkten in globale Canvas-Punkte.
+
+function getViewportCenter() { return { x: (canvas.parentElement.clientWidth / 2 - panX) / scale, y: (canvas.parentElement.clientHeight / 2 - panY) / scale }; }
+function getCanvasCoords(e) {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    return { x: (e.clientX - rect.left - panX) / scale, y: (e.clientY - rect.top - panY) / scale };
+}
+function getElementKey(el) {
+    if (el.type === 'knick') return 'knick';
+    if (el.filename) {
+        if (el.filename.includes('2480')) return '2480.svg';
+        if (el.filename.includes('3720')) return '3720.svg';
+        return el.filename;
+    }
+    return null;
+}
+
+function getConnectedGroup(root) {
+    let group = new Set();
+    function traverse(el) {
+        if (!el || group.has(el)) return;
+        group.add(el);
+        if (el.parent) traverse(el.parent);
+        elements.forEach(o => { if (o.parent === el) traverse(o); });
+    }
+    traverse(root); return Array.from(group);
+}
+
+function isLeftConnector(el, conn) {
+    if (el.type === 'knick') return conn.flangeSide === 'left';
+    let nativeX = conn.x; if (el.mirrored) nativeX = (el.width / el.scaleFactor) - nativeX;
+    return nativeX < (el.width / el.scaleFactor) / 2;
+}
+
+function getTransformOps(el) {
+    let ops = []; let curr = el; let root = getChainRoot(el); let path = [];
+    while (curr) { path.push(curr); curr = curr.parent; } path.reverse();
+
+    if (root && root.chainAngle) {
+        let rootFlanges = getFlangeConnectors(root);
+        let cx = root.x, cy = root.y;
+        if (rootFlanges.left) {
+            let off = getLocalFlangeOffset(root, rootFlanges.left);
+            cx = root.x + off.x; cy = root.y + off.y;
+        }
+        ops.push({ type: 'rotate', angle: root.chainAngle, cx: cx, cy: cy });
+    }
+    for (let i = 0; i < path.length - 1; i++) {
+        let node = path[i]; let nextNode = path[i + 1];
+        let isRightOfParent = nextNode.x > node.x + (node.width / node.scaleFactor) * node.scaleFactor * 0.4;
+        let parentAngle = 0; if (node.type === 'knick') parentAngle = isRightOfParent ? (node.knickAngle / 2) : -(node.knickAngle / 2);
+        let childAngle = 0; if (nextNode.type === 'knick') childAngle = isRightOfParent ? (nextNode.knickAngle / 2) : -(nextNode.knickAngle / 2);
+        let relAngle = parentAngle + childAngle;
+
+        if (relAngle !== 0) {
+            let pFlanges = getFlangeConnectors(node);
+            let pConn = isRightOfParent ? pFlanges.right : pFlanges.left;
+            let pivotX = node.x, pivotY = node.y;
+            if (pConn) { let off = getLocalFlangeOffset(node, pConn); pivotX = node.x + off.x; pivotY = node.y + off.y; }
+            ops.push({ type: 'rotate', angle: relAngle, cx: pivotX, cy: pivotY });
+        }
+    }
+    return ops;
+}
+
+function getGlobalAngle(el) {
+    let ops = getTransformOps(el); let sum = 0; for (let o of ops) sum += o.angle; return sum;
+}
+
+function transformPoint(pt, ops) {
+    let x = pt.x, y = pt.y;
+    for (let op of ops) {
+        if (op.type === 'rotate') {
+            let rad = (-op.angle * Math.PI) / 180;
+            let dx = x - op.cx; let dy = y - op.cy;
+            x = op.cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+            y = op.cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+        }
+    }
+    return { x, y };
+}
+
+function getLocalFlangeOffset(el, c) {
+    if (!c) return { x: 0, y: 0 };
+    if (el.type === 'knick') {
+        const origRad = (4.0) * Math.PI / 180; const newRad = (el.knickAngle / 2) * Math.PI / 180; const rotOffset = newRad - origRad;
+        if (c.flangeSide === 'left') {
+            let x = el.bodyData.nativePivotL - c.nativeFlangeX * Math.cos(rotOffset) - c.nativeFlangeY * Math.sin(rotOffset);
+            let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
+            return { x: x * el.scaleFactor, y: y * el.scaleFactor };
+        } else if (c.flangeSide === 'right') {
+            let x = el.bodyData.nativePivotR + c.nativeFlangeX * Math.cos(rotOffset) + c.nativeFlangeY * Math.sin(rotOffset);
+            let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
+            return { x: x * el.scaleFactor, y: y * el.scaleFactor };
+        }
+    }
+    let cx = c.x, cy = c.y; if (el.mirrored) cx = (el.width / el.scaleFactor) - cx;
+    return { x: cx * el.scaleFactor, y: cy * el.scaleFactor };
+}
+
+function getConnectorWorldPos(el, c) {
+    let localOff = getLocalFlangeOffset(el, c);
+    let pt = { x: el.x + localOff.x, y: el.y + localOff.y };
+    return transformPoint(pt, [...getTransformOps(el)].reverse());
+}
+
+function getLegConnectorWorldPos(leg) {
+    const s = leg.scaleFactor; let pt = { x: leg.x + (leg.connector.x * s), y: leg.y + (leg.connector.y * s) };
+    if (leg.parent) pt = transformPoint(pt, [...getTransformOps(leg.parent)].reverse());
+    return pt;
+}
+
+function getElementWorldBounds(el) {
+    let w = el.width, h = el.height;
+    if (el.type === 'assembly_leg') {
+        const s = el.scaleFactor; w = el.parts.stuetze.width * s; h = (el.parts.stuetze.height * 0.4) * s + el.extension * s + (el.parts.teleskop.height * s);
+    } else if (el.type === 'knick') {
+        const scaleXFactor = Math.abs(el.knickAngle) / 8.0; w = el.width * Math.max(scaleXFactor, 1.0);
+    }
+    let corners = [{ x: el.x, y: el.y }, { x: el.x + w, y: el.y }, { x: el.x + w, y: el.y + h }, { x: el.x, y: el.y + h }];
+    corners = corners.map(pt => transformPoint(pt, [...getTransformOps(el)].reverse()));
+    let minX = Math.min(...corners.map(c => c.x)); let maxX = Math.max(...corners.map(c => c.x));
+    let minY = Math.min(...corners.map(c => c.y)); let maxY = Math.max(...corners.map(c => c.y));
+    return { corners, minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+}
+
+function isConnectorOccupied(targetEl, targetConn) {
+    let targetWorld = getConnectorWorldPos(targetEl, targetConn);
+    for (let e of elements) {
+        if (e === targetEl || dragGroup.includes(e) || !e.connectors) continue;
+        for (let c of e.connectors) {
+            if (c.type === targetConn.type) {
+                let eWorld = getConnectorWorldPos(e, c);
+                if (Math.hypot(eWorld.x - targetWorld.x, eWorld.y - targetWorld.y) < 2.0) return true;
+            }
+        }
+    }
+    return false;
+}
+
+function categorizeConnectors(connectors, width) {
+    let cat = []; let yGroups = [];
+    connectors.forEach(c => {
+        let added = false;
+        for (let g of yGroups) { if (Math.abs(g.y - c.y) < 5) { g.list.push(c); added = true; break; } }
+        if (!added) yGroups.push({ y: c.y, list: [c] });
+    });
+    if (connectors.length === 3 && yGroups.length === 2) {
+        yGroups.forEach(g => {
+            if (g.list.length === 2) g.list.forEach(c => cat.push({ ...c, type: 'leg' })); else g.list.forEach(c => cat.push({ ...c, type: 'flange' }));
+        });
+    } else {
+        connectors.forEach(c => {
+            const isFlange = (c.x < width * 0.08) || (c.x > width * 0.92);
+            cat.push({ ...c, type: isFlange ? 'flange' : 'leg' });
+        });
+    }
+    return cat;
+}
+
+function getElementWeightProfile(el) {
+    let key = getElementKey(el);
+    if (!key || !moduleSettings[key]) return null;
+    let set = moduleSettings[key];
+    let b = getElementWorldBounds(el);
+
+    let weight = 0;
+    if (set.weightMode === 'per_m') {
+        let lengthM = set.length || (b.width / SCALE_GLOBAL / 1000);
+        weight = set.weightVal * lengthM;
+    } else {
+        weight = set.weightVal;
+    }
+
+    let cgX = b.minX + b.width / 2;
+    let leftWeight = weight / 2;
+    let rightWeight = weight / 2;
+
+    if (key === 'antriebstation.svg') {
+        let flanges = getFlangeConnectors(el);
+        let flangeLeft = flanges.left !== null;
+        let flangeRight = flanges.right !== null;
+        if (flangeLeft && !flangeRight) {
+            cgX = b.minX + b.width * (2 / 3);
+            leftWeight = weight * (1 / 3);
+            rightWeight = weight * (2 / 3);
+        } else if (flangeRight && !flangeLeft) {
+            cgX = b.minX + b.width * (1 / 3);
+            leftWeight = weight * (2 / 3);
+            rightWeight = weight * (1 / 3);
+        }
+    }
+
+    return { weight, cgX, minX: b.minX, maxX: b.maxX, leftWeight, rightWeight, width: b.width };
+}
+
+function getWeightInInterval(profile, L, R) {
+    let mid = profile.minX + profile.width / 2;
+    function overlap(a_min, a_max, b_min, b_max) {
+        return Math.max(0, Math.min(a_max, b_max) - Math.max(a_min, b_min));
+    }
+    let w = 0;
+    let overLeft = overlap(profile.minX, mid, L, R);
+    if (overLeft > 0) w += (overLeft / (profile.width / 2)) * profile.leftWeight;
+    let overRight = overlap(mid, profile.maxX, L, R);
+    if (overRight > 0) w += (overRight / (profile.width / 2)) * profile.rightWeight;
+    return w;
+}
+
+        // ==========================================
+        // MODULE 5: ASSET MANAGER
+        // ==========================================
+        async function loadSVG(filename) {
+            if (svgCache[filename]) return svgCache[filename];
+            try {
+                const resp = await fetch(filename); let svgText = await resp.text();
+                const parser = new DOMParser(); const doc = parser.parseFromString(svgText, "image/svg+xml");
+                const metaScript = doc.getElementById('cad-metadata');
+                let meta = { width: 1000, height: 1000, connectors: [] };
+                if (metaScript) meta = JSON.parse(metaScript.textContent);
+
+                let connectors = (meta.connectors || []).map(c => ({ x: c.x, y: c.y, type: c.type }));
+
+                if (filename.includes('stützplatte')) {
+                    connectors.sort((a, b) => a.y - b.y);
+                    if(connectors.length > 0) connectors[0].type = 'top_connector';
+                    if(connectors.length > 1) connectors[1].type = 'bottom_connector';
+                } else if (connectors.length > 0 && !connectors.some(c => c.type)) {
+                    connectors = categorizeConnectors(connectors, meta.width);
+                }
+
+                const blob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const img = new Image(); await new Promise(r => { img.onload = r; img.src = url; });
+                const data = { img: img, svgText: svgText, filename: filename, width: meta.width, height: meta.height, connectors: connectors };
+
+                if (filename.includes('knick_body')) {
+                    let paths = [];
+                    const vbMatch = svgText.match(/viewBox="[\d.-]+\s+[\d.-]+\s+([\d.-]+)\s+([\d.-]+)"/);
+                    const vbW = vbMatch ? parseFloat(vbMatch[1]) : meta.width; const vbH = vbMatch ? parseFloat(vbMatch[2]) : meta.height;
+                    const sX = meta.width / vbW; const sY = meta.height / vbH;
+
+                    const pathRegex = /<path[^>]*d="([^"]+)"[^>]*>/g;
+                    let pMatch;
+                    while ((pMatch = pathRegex.exec(svgText)) !== null) {
+                        if (pMatch[0].includes('display="none"')) continue;
+                        let tokens = pMatch[1].trim().split(/\s+/);
+                        let parsedPath = [], cx = 0, cy = 0;
+                        for (let i=0; i<tokens.length; ) {
+                            if (tokens[i] === 'M') { cx = parseFloat(tokens[i+1]) * sX; cy = parseFloat(tokens[i+2]) * sY; parsedPath.push({cmd: 'M', x: cx, y: cy}); i += 3; }
+                            else if (tokens[i] === 'l') { cx += parseFloat(tokens[i+1]) * sX; cy += parseFloat(tokens[i+2]) * sY; parsedPath.push({cmd: 'L', x: cx, y: cy}); i += 3; }
+                            else { i++; }
+                        }
+                        if (parsedPath.length > 0) paths.push(parsedPath);
+                    }
+                    data.paths = paths;
+                    let pL = meta.connectors.find(c => c.x < meta.width/2); let pR = meta.connectors.find(c => c.x >= meta.width/2);
+                    data.nativePivotL = pL ? pL.x : meta.width * 0.1; data.nativePivotR = pR ? pR.x : meta.width * 0.9;
+                }
+                svgCache[filename] = data; return data;
+            } catch (err) { return null; }
+        }
+
+        async function getTintedImage(filename, color) {
+            if (!color || color === '#0f172a') { const raw = await loadSVG(filename); return raw.img; }
+            const key = `${filename}_${color}`;
+            if (tintedImgCache[key]) return tintedImgCache[key];
+            const raw = await loadSVG(filename);
+            if (!raw) return null;
+            let tintedSvg = raw.svgText.replace(/stroke:\s*#0f172a\s*!important/g, `stroke: ${color} !important`);
+            tintedSvg = tintedSvg.replace(/stroke:\s*#000000\s*!important/g, `stroke: ${color} !important`);
+            const blob = new Blob([tintedSvg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const img = new Image(); await new Promise(r => { img.onload = r; img.src = url; });
+            tintedImgCache[key] = img; return img;
+        }
+
+        // ==========================================
+        // MODULE 6: BUILDER & ALIGNMENT
+        // ==========================================
+        function getFlangeConnectors(el) {
+            if (!el.connectors) return { left: null, right: null };
+            let flanges = el.connectors.filter(c => c.type === 'flange');
+            if (flanges.length === 0) return { left: null, right: null };
+            let leftFlanges = flanges.filter(c => isLeftConnector(el, c)); let rightFlanges = flanges.filter(c => !isLeftConnector(el, c));
+            let leftC = leftFlanges.length > 0 ? leftFlanges.reduce((p, c) => c.x < p.x ? c : p) : null;
+            let rightC = rightFlanges.length > 0 ? rightFlanges.reduce((p, c) => c.x > p.x ? c : p) : null;
+            return { left: leftC, right: rightC };
+        }
+        function getChainRoot(el) {
+            let curr = el; while (curr && curr.parent && (curr.parent.type === 'band' || curr.parent.type === 'end_unit' || curr.parent.type === 'knick')) curr = curr.parent; return curr;
+        }
+        function getChainAngle(el) { const root = getChainRoot(el); return (root && root.chainAngle) ? root.chainAngle : 0; }
+
+        async function addModule(type, filename) {
+            if (filename === 'antriebstation.svg' && elements.some(e => e.filename === 'antriebstation.svg')) {
+                alert("Es kann nur eine Antriebsstation pro Anlage geben!"); return;
+            }
+            if (filename === 'Spannstation.svg' && elements.some(e => e.filename === 'Spannstation.svg')) {
+                alert("Es kann nur eine Spannstation pro Anlage geben!"); return;
+            }
+
+            const svgData = await loadSVG(filename); if (!svgData) return;
+            const center = getViewportCenter();
+            const initColor = moduleSettings[filename] ? moduleSettings[filename].color : '#0f172a';
+            const newEl = {
+                id: Date.now(), type: type, filename: filename, img: await getTintedImage(filename, initColor),
+                x: center.x - (svgData.width * SCALE_GLOBAL) / 2, y: center.y - (svgData.height * SCALE_GLOBAL) / 2,
+                width: svgData.width * SCALE_GLOBAL, height: svgData.height * SCALE_GLOBAL,
+                scaleFactor: SCALE_GLOBAL, connectors: svgData.connectors.map(c => ({...c})),
+                mirrored: false, parent: null, chainAngle: 0, color: initColor,
+                isDetached: false, ignoreSnapUntilMove: false, detachStartX: 0, detachStartY: 0
+            };
+            elements.push(newEl); selectSingle(newEl); updateStats(); draw();
+        }
+
+        async function addKnickModule() {
+            const bodySvg = await loadSVG('knick_body.svg'); const detailsSvg = await loadSVG('knick_body_details.svg'); const flangeSvg = await loadSVG('knick_flange.svg');
+            if (!bodySvg || !flangeSvg || !detailsSvg) return;
+
+            let kConnectors = [];
+            if (flangeSvg.connectors && flangeSvg.connectors.length > 0) {
+                flangeSvg.connectors.forEach(fc => {
+                    if (fc.y > 10) {
+                        kConnectors.push({ flangeSide: 'left', nativeFlangeX: fc.x, nativeFlangeY: fc.y, type: 'flange', x: bodySvg.nativePivotL - fc.x, y: fc.y });
+                        kConnectors.push({ flangeSide: 'right', nativeFlangeX: fc.x, nativeFlangeY: fc.y, type: 'flange', x: bodySvg.nativePivotR + fc.x, y: fc.y });
+                    }
+                });
+            } else {
+                let fw = flangeSvg.width || (bodySvg.width * 0.1);
+                kConnectors = [
+                    { x: bodySvg.nativePivotL - fw, y: bodySvg.height, type: 'flange', flangeSide: 'left', nativeFlangeX: fw, nativeFlangeY: bodySvg.height },
+                    { x: bodySvg.nativePivotR + fw, y: bodySvg.height, type: 'flange', flangeSide: 'right', nativeFlangeX: fw, nativeFlangeY: bodySvg.height }
+                ];
+            }
+            const center = getViewportCenter();
+            const initColor = moduleSettings['knick'].color || '#0f172a';
+            const newEl = {
+                id: Date.now(), type: 'knick', filename: 'knick_body.svg', detailsFilename: 'knick_body_details.svg', flangeFilename: 'knick_flange.svg',
+                bodyData: bodySvg, detailsData: detailsSvg, detailsImg: await getTintedImage('knick_body_details.svg', initColor), flangeImg: await getTintedImage('knick_flange.svg', initColor),
+                x: center.x - (bodySvg.width * SCALE_GLOBAL) / 2, y: center.y - (bodySvg.height * SCALE_GLOBAL) / 2,
+                width: bodySvg.width * SCALE_GLOBAL, height: bodySvg.height * SCALE_GLOBAL, scaleFactor: SCALE_GLOBAL, knickAngle: 8.0,
+                connectors: kConnectors, flangeWidth: flangeSvg.width, mirrored: false, parent: null, color: initColor,
+                isDetached: false, ignoreSnapUntilMove: false, detachStartX: 0, detachStartY: 0
+            };
+            elements.push(newEl); selectSingle(newEl); updateStats(); draw();
+        }
+
+        async function addStuetzfuss() {
+            const stuetze = await loadSVG('stütze.svg'); const teleskop = await loadSVG('teleskopstange.svg'); const platte = await loadSVG('stützplatte.svg');
+            if (!stuetze || !teleskop || !platte) return;
+            const center = getViewportCenter();
+            const newEl = {
+                id: Date.now(), type: 'assembly_leg', x: center.x - (stuetze.width * SCALE_GLOBAL) / 2, y: center.y, scaleFactor: SCALE_GLOBAL,
+                parts: { stuetze, teleskop, platte }, connector: stuetze.connectors[0] || { x: stuetze.width/2, y: 0 },
+                extension: 0, baseType: 'none', baseHeight: 150, baseData: null, baseImg: null, parent: null, color: '#0f172a',
+                isDetached: false, ignoreSnapUntilMove: false, detachStartX: 0, detachStartY: 0
+            };
+            elements.push(newEl); selectSingle(newEl); updateStats(); draw();
+        }
+
+        function recalculateChainAlignment(startNode) {
+            elements.forEach(child => {
+                if (child.parent === startNode) {
+                    if (child.type !== 'assembly_leg') {
+                        let pFlanges = getFlangeConnectors(startNode); let cFlanges = getFlangeConnectors(child);
+                        let isRight = child.x > startNode.x;
+                        let pConn = isRight ? pFlanges.right : pFlanges.left; let cConn = isRight ? cFlanges.left : cFlanges.right;
+                        if(!cConn) cConn = cFlanges.left || cFlanges.right;
+
+                        if (pConn && cConn) {
+                            let pLocal = getLocalFlangeOffset(startNode, pConn); let cLocal = getLocalFlangeOffset(child, cConn);
+                            child.x = startNode.x + pLocal.x - cLocal.x; child.y = startNode.y + pLocal.y - cLocal.y;
+                        }
+                        recalculateChainAlignment(child);
+                    } else {
+                        let newLegConnectors = startNode.connectors.filter(c => c.type === 'leg');
+                        let closestConn = null; let minDist = Infinity;
+                        let currentLocalX = child.x + (child.connector.x * child.scaleFactor);
+                        newLegConnectors.forEach(c => {
+                            let off = getLocalFlangeOffset(startNode, c);
+                            let targetLocalX = startNode.x + off.x;
+                            let dist = Math.abs(currentLocalX - targetLocalX);
+                            if (dist < minDist) { minDist = dist; closestConn = c; }
+                        });
+                        if (closestConn) {
+                            let off = getLocalFlangeOffset(startNode, closestConn);
+                            child.x = startNode.x + off.x - (child.connector.x * child.scaleFactor);
+                            child.y = startNode.y + off.y - (child.connector.y * child.scaleFactor);
+                        }
+                    }
+                }
+            });
+        }
+
+        async function executeArray(dir) {
+            if (selectedElements.length !== 1 || selectedElements[0].type !== 'band') return;
+            const base = selectedElements[0];
+            const count = parseInt(document.getElementById('array-count').value) || 2;
+            closeArrayModal();
+            const svgData = await loadSVG(base.filename);
+            const unitWidth = svgData.width * SCALE_GLOBAL;
+
+            let displacedChild = null;
+            elements.forEach(child => {
+                if (child.parent === base && child.type !== 'assembly_leg') {
+                    let isRight = child.x > base.x;
+                    if ((dir === 1 && isRight) || (dir === -1 && !isRight)) displacedChild = child;
+                }
+            });
+
+            const baseFlanges = getFlangeConnectors(base);
+            const refNewFlanges = getFlangeConnectors({ connectors: categorizeConnectors(svgData.connectors, svgData.width), width: unitWidth, scaleFactor: SCALE_GLOBAL, mirrored: false });
+
+            let singleStepX = unitWidth;
+            if (baseFlanges.right && refNewFlanges.left) {
+                let offBaseR = getLocalFlangeOffset(base, baseFlanges.right);
+                let offNewL = getLocalFlangeOffset({width: unitWidth, scaleFactor: SCALE_GLOBAL, mirrored: false}, refNewFlanges.left);
+                singleStepX = offBaseR.x - offNewL.x;
+            }
+            const totalShiftX = Math.abs(singleStepX) * count;
+
+            if (displacedChild) {
+                function shiftSubtree(node, shift) {
+                    node.x += shift;
+                    elements.forEach(c => { if (c.parent === node) shiftSubtree(c, shift); });
+                }
+                shiftSubtree(displacedChild, dir === 1 ? totalShiftX : -totalShiftX);
+            }
+
+            let lastEl = base;
+            for (let i = 0; i < count; i++) {
+                const initColor = moduleSettings[base.filename] ? moduleSettings[base.filename].color : '#0f172a';
+                const newEl = {
+                    id: Date.now() + i, type: 'band', filename: base.filename, img: await getTintedImage(base.filename, initColor),
+                    x: dir === 1 ? lastEl.x + lastEl.width : lastEl.x - unitWidth, y: lastEl.y, width: unitWidth, height: svgData.height * SCALE_GLOBAL, scaleFactor: SCALE_GLOBAL,
+                    connectors: categorizeConnectors(svgData.connectors, svgData.width), mirrored: false, parent: lastEl, color: initColor, isDetached: false
+                };
+                elements.push(newEl); lastEl = newEl;
+            }
+
+            if (displacedChild) displacedChild.parent = lastEl;
+            recalculateChainAlignment(base); updateStats(); draw();
+        }
+
+        async function replaceSelected() {
+            if (selectedElements.length !== 1 || selectedElements[0].type !== 'band') return;
+            const target = selectedElements[0];
+            const targetFile = target.filename.includes('2480') ? '3720.svg' : '2480.svg';
+            const svgData = await loadSVG(targetFile); if (!svgData) return;
+            const oldFlanges = getFlangeConnectors(target); let oldLeftOff = oldFlanges.left ? getLocalFlangeOffset(target, oldFlanges.left) : {x: 0, y: 0};
+            const initColor = moduleSettings[targetFile] ? moduleSettings[targetFile].color : '#0f172a';
+
+            target.filename = targetFile; target.img = await getTintedImage(targetFile, initColor); target.color = initColor;
+            target.width = svgData.width * SCALE_GLOBAL; target.height = svgData.height * SCALE_GLOBAL;
+            target.connectors = categorizeConnectors(svgData.connectors, svgData.width);
+
+            const newFlanges = getFlangeConnectors(target); let newLeftOff = newFlanges.left ? getLocalFlangeOffset(target, newFlanges.left) : {x: 0, y: 0};
+
+            if (target.parent) {
+                let pFlanges = getFlangeConnectors(target.parent); let cFlanges = getFlangeConnectors(target);
+                let isRight = target.x > target.parent.x;
+                let pConn = isRight ? pFlanges.right : pFlanges.left; let cConn = isRight ? cFlanges.left : cFlanges.right;
+                if (pConn && cConn) {
+                    let pLocal = getLocalFlangeOffset(target.parent, pConn); let cLocal = getLocalFlangeOffset(target, cConn);
+                    target.x = target.parent.x + pLocal.x - cLocal.x; target.y = target.parent.y + pLocal.y - cLocal.y;
+                }
+            } else { target.x += (oldLeftOff.x - newLeftOff.x); target.y += (oldLeftOff.y - newLeftOff.y); }
+            recalculateChainAlignment(target); updateStats(); draw();
+        }
+
+        function mirrorSelected() {
+            if (selectedElements.length !== 1) return; let el = selectedElements[0]; if (el.type !== 'end_unit') return;
+            el.mirrored = !el.mirrored;
+            if (el.parent) {
+                let pFlanges = getFlangeConnectors(el.parent); let cFlanges = getFlangeConnectors(el);
+                let isRight = el.x > el.parent.x;
+                let pConn = isRight ? pFlanges.right : pFlanges.left; let cConn = cFlanges.left || cFlanges.right;
+                if (pConn && cConn) {
+                    let pLocal = getLocalFlangeOffset(el.parent, pConn); let cLocal = getLocalFlangeOffset(el, cConn);
+                    el.x = el.parent.x + pLocal.x - cLocal.x; el.y = el.parent.y + pLocal.y - cLocal.y;
+                }
+            }
+            recalculateChainAlignment(el); updateStats(); draw();
+        }
+
+        function detachSelected() {
+            selectedElements.forEach(el => {
+                el.parent = null; el.isDetached = true; el.ignoreSnapUntilMove = true; el.detachStartX = el.x; el.detachStartY = el.y;
+                elements.forEach(child => {
+                    if (child.parent === el) { child.parent = null; child.isDetached = true; child.ignoreSnapUntilMove = true; child.detachStartX = child.x; child.detachStartY = child.y; }
+                });
+            });
+            updateActionMenu(); draw();
+        }
+        function deleteSelected() {
+            if (selectedElements.length > 0) {
+                elements = elements.filter(e => !selectedElements.includes(e));
+                elements.forEach(e => { if (selectedElements.includes(e.parent)) e.parent = null; });
+                selectedElements = []; updateActionMenu(); updateStats(); draw();
+            }
+        }
+        function clearCanvas() { elements = []; selectedElements = []; dragGroup = []; draggedElement = null; updateActionMenu(); updateStats(); draw(); }
+
+
+        // ==========================================
+        // MODULE 7: INPUT CONTROLS (MOUSE & MENU)
+        // ==========================================
+        function getElementAtPosition(pos) {
+            for (let i = elements.length - 1; i >= 0; i--) {
+                const el = elements[i];
+                // World -> Local Transformation: Die invertierten Winkel werden OHNE reverse() übergeben.
+                let invOps = getTransformOps(el).map(op => ({ ...op, angle: -op.angle }));
+                let testPt = transformPoint(pos, invOps);
+
+                if (el.type === 'band' || el.type === 'end_unit') {
+                    if (testPt.x >= el.x && testPt.x <= el.x + el.width && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
+                } else if (el.type === 'knick') {
+                    const bWidth = el.width * Math.max(Math.abs(el.knickAngle) / 8.0, 1.0);
+                    if (testPt.x >= el.x && testPt.x <= el.x + bWidth && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
+                } else if (el.type === 'assembly_leg') {
+                    const s = el.scaleFactor; const stW = el.parts.stuetze.width * s; const totalH = (el.parts.stuetze.height * 0.4) * s + el.extension * s + (el.parts.teleskop.height * s);
+                    if (testPt.x >= el.x && testPt.x <= el.x + stW && testPt.y >= el.y && testPt.y <= el.y + totalH) return el;
+                }
+            }
+            return null;
+        }
+
+        function selectSingle(el) { selectedElements = el ? [el] : []; updateActionMenu(); }
+        function toggleSelect(el) {
+            const idx = selectedElements.indexOf(el); if (idx > -1) selectedElements.splice(idx, 1); else selectedElements.push(el); updateActionMenu();
+        }
+
+        function updateActionMenu() {
+            const menu = document.getElementById('action-menu');
+            const btns = ['btn-mirror', 'btn-array', 'btn-replace', 'btn-detach'];
+            const groups = ['leg-controls', 'leg-base-controls', 'leg-sockel-controls', 'knick-controls', 'band-angle-controls'];
+
+            if (selectedElements.length > 0) {
+                menu.style.display = 'flex';
+                const mainEl = selectedElements[0];
+                if (selectedElements.length === 1) {
+                    document.getElementById('btn-mirror').style.display = (mainEl.type === 'end_unit') ? 'inline-block' : 'none';
+                    document.getElementById('btn-array').style.display = (mainEl.type === 'band') ? 'inline-block' : 'none';
+                    document.getElementById('btn-replace').style.display = (mainEl.type === 'band') ? 'inline-block' : 'none';
+                    const hasConnection = mainEl.parent || elements.some(e => e.parent === mainEl);
+                    document.getElementById('btn-detach').style.display = hasConnection ? 'inline-block' : 'none';
+
+                    if (mainEl.type === 'assembly_leg') {
+                        document.getElementById('leg-controls').style.display = 'flex';
+                        document.getElementById('slider-extension').value = mainEl.extension; document.getElementById('val-extension').innerText = `${mainEl.extension}mm`;
+                        document.getElementById('leg-base-controls').style.display = 'flex'; document.getElementById('select-base-type').value = mainEl.baseType || 'none';
+                        if (mainEl.baseType === 'sockel') {
+                            document.getElementById('leg-sockel-controls').style.display = 'flex';
+                            document.getElementById('slider-sockel-height').value = mainEl.baseHeight || 150; document.getElementById('val-sockel-height').innerText = `${mainEl.baseHeight || 150}mm`;
+                        } else { document.getElementById('leg-sockel-controls').style.display = 'none'; }
+                    } else {
+                        document.getElementById('leg-controls').style.display = 'none'; document.getElementById('leg-base-controls').style.display = 'none'; document.getElementById('leg-sockel-controls').style.display = 'none';
+                    }
+                    if (mainEl.type === 'knick') {
+                        document.getElementById('knick-controls').style.display = 'flex'; document.getElementById('slider-knick-angle').value = mainEl.knickAngle; document.getElementById('val-knick-angle').innerText = `${mainEl.knickAngle.toFixed(1)}°`;
+                    } else { document.getElementById('knick-controls').style.display = 'none'; }
+
+                    if (mainEl.type === 'band') {
+                        document.getElementById('band-angle-controls').style.display = 'flex'; document.getElementById('slider-band-angle').value = getChainAngle(mainEl); document.getElementById('val-band-angle').innerText = `${getGlobalAngle(mainEl).toFixed(1)}°`;
+                    } else { document.getElementById('band-angle-controls').style.display = 'none'; }
+                } else {
+                    btns.forEach(id => document.getElementById(id).style.display = 'none'); groups.forEach(id => document.getElementById(id).style.display = 'none');
+                }
+            } else { menu.style.display = 'none'; }
+        }
+
+        function updateLegExtension(val) {
+            if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
+                selectedElements[0].extension = parseFloat(val); document.getElementById('val-extension').innerText = `${val}mm`; draw();
+            }
+        }
+        async function updateLegBase(val) {
+            if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
+                let el = selectedElements[0]; el.baseType = val;
+                if (val === 'heb120' && !el.baseData) {
+                    el.baseData = await loadSVG('HEB120.svg'); if (el.baseData) el.baseImg = await getTintedImage('HEB120.svg', el.color || '#0f172a');
+                }
+                updateActionMenu(); draw();
+            }
+        }
+        function updateSockelHeight(val) {
+            if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
+                selectedElements[0].baseHeight = parseInt(val); document.getElementById('val-sockel-height').innerText = `${val}mm`; draw();
+            }
+        }
+        function updateKnickAngle(val) {
+            if (selectedElements.length === 1 && selectedElements[0].type === 'knick') {
+                let knick = selectedElements[0];
+                let oldFlanges = getFlangeConnectors(knick); let oldLeftOff = oldFlanges.left ? getLocalFlangeOffset(knick, oldFlanges.left) : {x:0, y:0};
+
+                knick.knickAngle = parseFloat(val); document.getElementById('val-knick-angle').innerText = `${val}°`;
+                let newFlanges = getFlangeConnectors(knick); let newLeftOff = newFlanges.left ? getLocalFlangeOffset(knick, newFlanges.left) : {x:0, y:0};
+
+                if (knick.parent) {
+                    let pFlanges = getFlangeConnectors(knick.parent); let myFlanges = getFlangeConnectors(knick);
+                    let isRightOfParent = knick.x > knick.parent.x;
+                    let pConn = isRightOfParent ? pFlanges.right : pFlanges.left; let cConn = isRightOfParent ? myFlanges.left : myFlanges.right;
+                    if (pConn && cConn) {
+                        let pLocal = getLocalFlangeOffset(knick.parent, pConn); let cLocal = getLocalFlangeOffset(knick, cConn);
+                        knick.x = knick.parent.x + pLocal.x - cLocal.x; knick.y = knick.parent.y + pLocal.y - cLocal.y;
+                    }
+                } else { knick.x += (oldLeftOff.x - newLeftOff.x); knick.y += (oldLeftOff.y - newLeftOff.y); }
+                recalculateChainAlignment(knick); updateStats(); draw();
+            }
+        }
+        function updateBandChainAngle(val) {
+            if (selectedElements.length === 1 && selectedElements[0].type === 'band') {
+                const angle = parseFloat(val); getChainRoot(selectedElements[0]).chainAngle = angle;
+                document.getElementById('val-band-angle').innerText = `${getGlobalAngle(selectedElements[0]).toFixed(1)}°`; draw();
+            }
+        }
+
+        function smartCenterView(isPrint = false, printW = null, printH = null) {
+            let targetElements = selectedElements.length > 0 ? selectedElements : elements;
+            if (targetElements.length === 0) { scale = 1; panX = 100; panY = 100; draw(); return; }
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            targetElements.forEach(el => {
+                const b = getElementWorldBounds(el);
+                if (b.minX < minX) minX = b.minX; if (b.maxX > maxX) maxX = b.maxX;
+                if (b.minY < minY) minY = b.minY; if (b.maxY > maxY) maxY = b.maxY;
+            });
+            const bboxW = maxX - minX; const bboxH = maxY - minY;
+            const centerX = minX + bboxW / 2; const centerY = minY + bboxH / 2;
+
+            const paddingX = 100;
+            const paddingTop = 100;
+            const paddingBottom = isPrint ? 400 : 100;
+
+            const canvasW = printW ? printW : canvas.parentElement.clientWidth;
+            const canvasH = printH ? printH : canvas.parentElement.clientHeight;
+
+            const scaleX = (canvasW - paddingX * 2) / bboxW;
+            const scaleY = (canvasH - paddingTop - paddingBottom) / bboxH;
+
+            scale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.05), 2.5);
+            panX = (canvasW / 2) - (centerX * scale);
+            const availCenterY = paddingTop + (canvasH - paddingTop - paddingBottom) / 2;
+            panY = availCenterY - (centerY * scale);
+
+            draw();
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            canvas.focus();
+            const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
+            if (hit) {
+                if (e.ctrlKey || e.metaKey) toggleSelect(hit);
+                else if (!selectedElements.includes(hit)) selectSingle(hit);
+                draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
+            } else {
+                if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
+                isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
+            }
+            lastMouseWorld = getCanvasCoords(e); draw();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (draggedElement && dragGroup.length > 0) {
+                let currentMouseWorld = getCanvasCoords(e);
+                let worldDx = currentMouseWorld.x - lastMouseWorld.x; let worldDy = currentMouseWorld.y - lastMouseWorld.y;
+                lastMouseWorld = currentMouseWorld;
+
+                if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
+                    draggedElement.ignoreSnapUntilMove = false; draggedElement.isDetached = false;
+                }
+
+                if (draggedElement.type === 'assembly_leg' && draggedElement.parent) {
+                    const wPos = getLegConnectorWorldPos(draggedElement);
+                    draggedElement.parent = null;
+                    draggedElement.x = wPos.x - (draggedElement.connector.x * draggedElement.scaleFactor); draggedElement.y = wPos.y - (draggedElement.connector.y * draggedElement.scaleFactor);
+                }
+
+                const angle = getChainAngle(draggedElement); let localDx = worldDx, localDy = worldDy;
+                if (angle !== 0 && !draggedElement.parent) {
+                    const rad = (angle * Math.PI) / 180;
+                    localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad); localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
+                }
+                dragGroup.forEach(el => { el.x += localDx; el.y += localDy; });
+
+                const SNAP = 25 / scale; let snappedParent = null;
+
+                if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.connectors && draggedElement.type !== 'assembly_leg') {
+                    const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
+                    let bestSnap = null, minSnapDist = SNAP;
+
+                    myAllFlanges.forEach(myConn => {
+                        let myIsLeft = isLeftConnector(draggedElement, myConn); let myWorld = getConnectorWorldPos(draggedElement, myConn);
+                        elements.forEach(other => {
+                            if (dragGroup.includes(other) || other.isDetached) return;
+                            if (draggedElement.type === 'knick' && other.type === 'end_unit') return;
+                            if (draggedElement.type === 'end_unit' && other.type === 'knick') return;
+
+                            const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                            otherAllFlanges.forEach(otherConn => {
+                                if (isConnectorOccupied(other, otherConn)) return;
+                                let otherIsLeft = isLeftConnector(other, otherConn);
+                                if (myIsLeft !== otherIsLeft) {
+                                    let otherPos = getConnectorWorldPos(other, otherConn);
+                                    let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
+                                    if (dist < minSnapDist) { minSnapDist = dist; bestSnap = { other, myConn, otherConn }; }
+                                }
+                            });
+                        });
+                    });
+                    if (bestSnap) {
+                        let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn); let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
+                        let idealX = bestSnap.other.x + otherOff.x - myOff.x; let idealY = bestSnap.other.y + otherOff.y - myOff.y;
+                        let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
+                        dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                        snappedParent = bestSnap.other;
+                    }
+                }
+                else if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.type === 'assembly_leg') {
+                    const legConnWorld = getLegConnectorWorldPos(draggedElement);
+                    elements.forEach(other => {
+                        if (!dragGroup.includes(other) && other.connectors) {
+                            const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
+                            otherLegConnectors.forEach(c => {
+                                if (isConnectorOccupied(other, c)) return;
+                                const bandConnWorld = getConnectorWorldPos(other, c);
+                                if (Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y) < SNAP) {
+                                    snappedParent = other;
+                                    let targetOff = getLocalFlangeOffset(other, c);
+                                    let idealX = other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
+                                    let idealY = other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
+                                    let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
+                                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                                }
+                            });
+                        }
+                    });
+                }
+                if (snappedParent) draggedElement.parent = snappedParent;
+                updateActionMenu(); draw();
+            } else if (isDraggingCanvas) { panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; draw(); }
+        });
+
+        canvas.addEventListener('mouseup', () => { draggedElement = null; dragGroup = []; isDraggingCanvas = false; updateActionMenu(); draw(); });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85; const newScale = Math.min(Math.max(scale * zoomFactor, 0.05), 5.0);
+            let pivotX = 0, pivotY = 0; let targetElements = selectedElements.length > 0 ? selectedElements : elements;
+            if (targetElements.length > 0) {
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                targetElements.forEach(el => {
+                    const b = getElementWorldBounds(el);
+                    if (b.minX < minX) minX = b.minX; if (b.maxX > maxX) maxX = b.maxX; if (b.minY < minY) minY = b.minY; if (b.maxY > maxY) maxY = b.maxY;
+                });
+                pivotX = minX + (maxX - minX) / 2; pivotY = minY + (maxY - minY) / 2;
+            } else { pivotX = (canvas.parentElement.clientWidth / 2 - panX) / scale; pivotY = (canvas.parentElement.clientHeight / 2 - panY) / scale; }
+            panX = panX - (pivotX * (newScale - scale)); panY = panY - (pivotY * (newScale - scale));
+            scale = newScale; draw();
+        });
+
+
+        // ==========================================
+        // MODULE 8: RENDER ENGINE
+        // ==========================================
+        function getLegBottomWorldCenter(leg) {
+            const s = leg.scaleFactor;
+            const pl = leg.parts.platte; const te = leg.parts.teleskop;
+            const stW = leg.parts.stuetze.width * s; const teW = te.width * s;
+            const extH = (leg.extension + 250) * s;
+            const teX = leg.x + (stW / 2) - (teW / 2); const teY = leg.y + (leg.parts.stuetze.height * 0.1) * s + extH;
+
+            let teConnX = teW / 2, teConnY = te.height * s;
+            if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
+
+            let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
+            let bottomConn = (pl.connectors && pl.connectors.find(c => c.type === 'bottom_connector')) || { x: pl.width / 2, y: pl.height };
+
+            const jointLocal = { x: teX + teConnX, y: teY + teConnY };
+            const jointWorld = leg.parent ? transformPoint(jointLocal, [...getTransformOps(leg.parent)].reverse()) : jointLocal;
+
+            let dx = (bottomConn.x - topConn.x) * s;
+            let dy = (bottomConn.y - topConn.y) * s;
+
+            return { x: jointWorld.x + dx, y: jointWorld.y + dy };
+        }
+
+        function renderTributaryAreas() {
+            const toggle = document.getElementById('toggle-einzugsflaechen');
+            if (!toggle || !toggle.checked) return;
+
+            getSystems().forEach(group => {
+                let minX = Infinity, maxX = -Infinity, minY = Infinity;
+                group.forEach(el => {
+                    const b = getElementWorldBounds(el);
+                    if (b.minX < minX) minX = b.minX;
+                    if (b.maxX > maxX) maxX = b.maxX;
+                    if (b.minY < minY) minY = b.minY;
+                });
+
+                let legs = group.filter(e => e.type === 'assembly_leg');
+                if (legs.length === 0) return;
+                let legItems = legs.map(leg => {
+                    let arrowTipWorld = getLegBottomWorldCenter(leg);
+                    return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y };
+                }).sort((a, b) => a.x - b.x);
+
+                const stabY = minY - (350 * SCALE_GLOBAL / scale);
+
+                ctx.save();
+                ctx.lineWidth = 15 * SCALE_GLOBAL / scale;
+                ctx.lineCap = 'butt';
+
+                const colors = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+
+                legItems.forEach((item, i) => {
+                    let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
+                    let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
+
+                    ctx.strokeStyle = colors[i % colors.length];
+                    ctx.beginPath();
+                    ctx.moveTo(leftBound, stabY);
+                    ctx.lineTo(rightBound, stabY);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 3 * SCALE_GLOBAL / scale;
+                    ctx.beginPath();
+                    ctx.moveTo(leftBound, stabY - 40 * SCALE_GLOBAL / scale);
+                    ctx.lineTo(leftBound, stabY + 40 * SCALE_GLOBAL / scale);
+                    ctx.moveTo(rightBound, stabY - 40 * SCALE_GLOBAL / scale);
+                    ctx.lineTo(rightBound, stabY + 40 * SCALE_GLOBAL / scale);
+                    ctx.stroke();
+
+                    let L_m = ((rightBound - leftBound) / SCALE_GLOBAL / 1000).toFixed(2);
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.font = `bold ${50 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(`L = ${L_m} m`, (leftBound + rightBound) / 2, stabY - 60 * SCALE_GLOBAL / scale);
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.beginPath();
+                    ctx.moveTo(item.x, stabY + 20 * SCALE_GLOBAL / scale);
+                    ctx.lineTo(item.x - 30 * SCALE_GLOBAL / scale, stabY + 80 * SCALE_GLOBAL / scale);
+                    ctx.lineTo(item.x + 30 * SCALE_GLOBAL / scale, stabY + 80 * SCALE_GLOBAL / scale);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+                ctx.restore();
+            });
+        }
+
+        function renderHeightKoten() {
+            const toggle = document.getElementById('toggle-koten'); if (!toggle || !toggle.checked) return;
+            const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+            let legData = []; let maxWorldY = -Infinity;
+            legs.forEach(leg => {
+                let plBottomCenter = getLegBottomWorldCenter(leg);
+                let baseH = 0;
+                if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
+                else if (leg.baseType === 'heb120' && leg.baseData) {
+                    baseH = leg.baseData.height * SCALE_GLOBAL;
+                    if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+                }
+                plBottomCenter.y += baseH;
+                if (plBottomCenter.y > maxWorldY) maxWorldY = plBottomCenter.y;
+                legData.push({ pos: plBottomCenter });
+            });
+            ctx.save();
+            ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+            ctx.fillStyle = '#0ea5e9'; ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 1.0 / scale;
+            legData.forEach(item => {
+                let diffPx = maxWorldY - item.pos.y; let mmVal = Math.round(diffPx / SCALE_GLOBAL); let mVal = (mmVal / 1000).toFixed(2);
+                let labelText = (mmVal === 0) ? '±0.00' : `+${mVal}`;
+                let lx = item.pos.x, ly = item.pos.y;
+                let offsetX = 150 * SCALE_GLOBAL / scale; let koteX = lx + offsetX;
+                let triW = 30 * SCALE_GLOBAL / scale, triH = 40 * SCALE_GLOBAL / scale, lineLength = 180 * SCALE_GLOBAL / scale;
+                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(koteX + triW + 10 * SCALE_GLOBAL / scale, ly); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(koteX, ly); ctx.lineTo(koteX - triW, ly - triH); ctx.lineTo(koteX + triW, ly - triH); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(koteX + triW, ly - triH); ctx.lineTo(koteX + triW + lineLength, ly - triH); ctx.stroke();
+                ctx.fillText(labelText, koteX + triW + 15 * SCALE_GLOBAL / scale, ly - triH - 5 * SCALE_GLOBAL / scale);
+            });
+            ctx.restore();
+        }
+
+        function renderDimensions() {
+            const toggle = document.getElementById('toggle-massketten'); if (!toggle || !toggle.checked) return;
+            const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length < 2) return;
+            let legData = []; let maxWorldY = -Infinity;
+            legs.forEach(leg => {
+                let plBottomCenter = getLegBottomWorldCenter(leg);
+                let baseH = 0;
+                if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
+                else if (leg.baseType === 'heb120' && leg.baseData) {
+                    baseH = leg.baseData.height * SCALE_GLOBAL;
+                    if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+                }
+                plBottomCenter.y += baseH;
+                if (plBottomCenter.y > maxWorldY) maxWorldY = plBottomCenter.y;
+                legData.push({ pos: plBottomCenter });
+            });
+            legData.sort((a, b) => a.pos.x - b.pos.x);
+            ctx.save();
+            ctx.strokeStyle = '#64748b'; ctx.fillStyle = '#64748b'; ctx.lineWidth = 1.0 / scale;
+            ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            let gap = 200 * SCALE_GLOBAL / scale;
+            let dimY1 = maxWorldY + gap;
+            let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+            ctx.beginPath();
+            legData.forEach(item => {
+                ctx.moveTo(item.pos.x, item.pos.y + 30 * SCALE_GLOBAL / scale);
+                ctx.lineTo(item.pos.x, dimY2 + 30 * SCALE_GLOBAL / scale);
+            });
+            ctx.setLineDash([20 * SCALE_GLOBAL / scale, 20 * SCALE_GLOBAL / scale]); ctx.stroke(); ctx.setLineDash([]);
+            let tickSize = 15 * SCALE_GLOBAL / scale;
+            function drawDimSegment(x1, x2, y) {
+                if (Math.abs(x2 - x1) < 1) return;
+                ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x1 - tickSize, y + tickSize); ctx.lineTo(x1 + tickSize, y - tickSize); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x2 - tickSize, y + tickSize); ctx.lineTo(x2 + tickSize, y - tickSize); ctx.stroke();
+                let distMeters = Math.abs(x2 - x1) / SCALE_GLOBAL / 1000;
+                ctx.fillText(distMeters.toFixed(2) + 'm', (x1 + x2) / 2, y - (10 * SCALE_GLOBAL / scale));
+            }
+            for (let i = 0; i < legData.length - 1; i++) drawDimSegment(legData[i].pos.x, legData[i + 1].pos.x, dimY1);
+            if (legData.length > 2) drawDimSegment(legData[0].pos.x, legData[legData.length - 1].pos.x, dimY2);
+            ctx.restore();
+        }
+
+        function getSystems() {
+            let systems = []; let visited = new Set();
+            elements.forEach(el => {
+                if (!visited.has(el)) {
+                    let group = getConnectedGroup(el); group.forEach(g => visited.add(g));
+                    if (group.some(g => g.type === 'band') && group.some(g => g.type === 'assembly_leg')) systems.push(group);
+                }
+            }); return systems;
+        }
+
+        function renderReactionForces() {
+            const toggle = document.getElementById('toggle-forces'); if (!toggle || !toggle.checked) return;
+            let allLegData = [];
+
+            getSystems().forEach(group => {
+                let totalWeight = 0; let momentSum = 0;
+                let minX = Infinity, maxX = -Infinity;
+                group.forEach(el => {
+                    let p = getElementWeightProfile(el);
+                    if (p) {
+                        totalWeight += p.weight;
+                        momentSum += p.weight * p.cgX;
+                        if (p.minX < minX) minX = p.minX;
+                        if (p.maxX > maxX) maxX = p.maxX;
+                    }
+                });
+
+                let legs = group.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+                let legItems = legs.map((leg, idx) => {
+                    let arrowTipWorld = getLegBottomWorldCenter(leg);
+
+                    let baseH = 0;
+                    if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
+                    else if (leg.baseType === 'heb120' && leg.baseData) {
+                        baseH = leg.baseData.height * SCALE_GLOBAL;
+                        if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+                    }
+
+                    return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y, baseH: baseH, localIdx: 0 };
+                }).sort((a, b) => a.x - b.x);
+
+                // Lokalen Index nach x-Sortierung zuweisen (F1, F2...)
+                legItems.forEach((item, idx) => item.localIdx = idx + 1);
+
+                let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+                let F_tot_kN = totalWeight * 9.81 / 1000;
+                let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+
+                if (legItems.length === 1) {
+                    legItems[0].forceKN = F_tot_kN;
+                    allLegData.push(legItems[0]);
+                } else if (legItems.length === 2) {
+                    let x1 = legItems[0].x; let x2 = legItems[1].x;
+                    if (Math.abs(x2 - x1) < 1) {
+                        legItems[0].forceKN = F_tot_kN / 2;
+                        legItems[1].forceKN = F_tot_kN / 2;
+                    } else {
+                        let F2 = F_tot_kN * (X_cg - x1) / (x2 - x1);
+                        let F1 = F_tot_kN - F2;
+                        legItems[0].forceKN = F1;
+                        legItems[1].forceKN = F2;
+                    }
+                    allLegData.push(legItems[0], legItems[1]);
+                } else {
+                    legItems.forEach((item, i) => {
+                        let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
+                        let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
+
+                        let f_teil_kg = 0;
+                        group.forEach(el => {
+                            let p = getElementWeightProfile(el);
+                            if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound);
+                        });
+                        item.forceKN = f_teil_kg * 9.81 / 1000;
+                        allLegData.push(item);
+                    });
+                }
+            });
+
+            if (allLegData.length === 0) return;
+            let maxGlobalF = 0;
+            let maxWorldY = -Infinity;
+            allLegData.forEach(item => {
+                if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
+                let yWithBase = item.y + item.baseH;
+                if (yWithBase > maxWorldY) maxWorldY = yWithBase;
+            });
+            if (maxGlobalF === 0) maxGlobalF = 1;
+
+            // Einheitliche Y-Zielkoordinate für die Enden der Pfeile (unterhalb der Maßketten)
+            let gap = 200 * SCALE_GLOBAL / scale;
+            let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+            let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
+
+            ctx.save();
+            ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1.5 / scale;
+
+            allLegData.forEach(item => {
+                let isUplift = item.forceKN < 0;
+                let absF = Math.abs(item.forceKN);
+                let ratio = absF / maxGlobalF;
+
+                let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
+                let lx = item.x;
+                let ly = item.y + item.baseH; // Kraft wirkt ganz unten am Boden/Sockel
+
+                ctx.strokeStyle = color; ctx.fillStyle = color;
+
+                let ahW = 8 / scale, ahH = 16 / scale;
+
+                // Gestrichelte Pfeillinie bis zur Maßkette verlängert
+                ctx.beginPath();
+                ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
+                ctx.moveTo(lx, arrowTailY);
+                ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Pfeilspitze (gefüllt)
+                ctx.beginPath();
+                if (isUplift) {
+                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
+                }
+
+                // Beschriftung 90° gedreht, sodass "kN" direkt unter dimY2 sitzt
+                let stateText = isUplift ? ' (ZUG)' : '';
+                let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
+
+                ctx.save();
+                ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'right'; // Damit endet der String "kN" direkt am Nullpunkt der Verschiebung
+                ctx.fillText(forceLabel, 0, 0);
+                ctx.restore();
+            });
+            ctx.restore();
+        }
+
+        function draw() {
+            const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(dpr, dpr);
+            ctx.translate(panX, panY);
+            ctx.scale(scale, scale);
+            const isLegDragged = draggedElement && draggedElement.type === 'assembly_leg';
+
+            elements.filter(e => e.type === 'band' || e.type === 'end_unit').forEach(el => {
+                ctx.save(); let ops = getTransformOps(el);
+                for (let op of ops) { ctx.translate(op.cx, op.cy); ctx.rotate((-op.angle * Math.PI) / 180); ctx.translate(-op.cx, -op.cy); }
+                if (el.mirrored) {
+                    ctx.save(); ctx.translate(el.x + el.width / 2, el.y + el.height / 2); ctx.scale(-1, 1);
+                    ctx.drawImage(el.img, -el.width / 2, -el.height / 2, el.width, el.height); ctx.restore();
+                } else { ctx.drawImage(el.img, el.x, el.y, el.width, el.height); }
+                if (selectedElements.includes(el)) {
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5 / scale; ctx.setLineDash([5 / scale, 5 / scale]);
+                    ctx.strokeRect(el.x - 2 / scale, el.y - 2 / scale, el.width + 4 / scale, el.height + 4 / scale); ctx.setLineDash([]);
+                }
+                if (isLegDragged && el.connectors) {
+                    el.connectors.filter(c => c.type === 'leg').forEach(c => {
+                        let cx = el.mirrored ? (el.width / el.scaleFactor) - c.x : c.x;
+                        const pos = { x: el.x + (cx * el.scaleFactor), y: el.y + (c.y * el.scaleFactor) };
+                        ctx.beginPath(); ctx.arc(pos.x, pos.y, 7 / scale, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2.5 / scale; ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.stroke();
+                    });
+                }
+                ctx.restore();
+            });
+
+            elements.filter(e => e.type === 'knick').forEach(el => {
+                ctx.save(); let ops = getTransformOps(el);
+                for (let op of ops) { ctx.translate(op.cx, op.cy); ctx.rotate((-op.angle * Math.PI) / 180); ctx.translate(-op.cx, -op.cy); }
+                const s = el.scaleFactor; const pL = el.bodyData.nativePivotL; const pR = el.bodyData.nativePivotR;
+                const origRad = (4.0) * Math.PI / 180; const newRad = (el.knickAngle / 2) * Math.PI / 180;
+                ctx.save(); ctx.translate(el.x, el.y);
+                ctx.strokeStyle = el.color || '#0f172a';
+                ctx.lineWidth = 0.08 / scale;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                if (el.bodyData.paths) {
+                    el.bodyData.paths.forEach(path => {
+                        ctx.beginPath();
+                        path.forEach(pt => {
+                            let y = pt.y;
+                            let origBl = pL - y * Math.tan(origRad); let origBr = pR + y * Math.tan(origRad); let t = (pt.x - origBl) / (origBr - origBl);
+                            let newBl = pL - y * Math.tan(newRad); let newBr = pR + y * Math.tan(newRad); let newX = newBl + t * (newBr - newBl);
+                            if (pt.cmd === 'M') ctx.moveTo(newX * s, y * s); else ctx.lineTo(newX * s, y * s);
+                        });
+                        ctx.stroke();
+                    });
+                }
+                if (el.detailsImg && el.detailsData) {
+                    ctx.save();
+                    let dL = (el.detailsData.connectors || []).find(c => c.x < el.detailsData.width * 0.5) || { x: el.detailsData.width * 0.1, y: 0 };
+                    let detScale = ((pR - pL) / ((el.detailsData.connectors || []).find(c => c.x >= el.detailsData.width * 0.5) || { x: el.detailsData.width * 0.9, y: 0 }).x - dL.x) * s;
+                    ctx.drawImage(el.detailsImg, (pL * s) - (dL.x * detScale), 0 - (dL.y * detScale), el.detailsData.width * detScale, el.detailsData.height * detScale);
+                    ctx.restore();
+                }
+                const rotOffset = newRad - origRad;
+                ctx.save(); ctx.translate(pL * s, 0); ctx.rotate(rotOffset); ctx.scale(-1, 1);
+                if (el.flangeImg) ctx.drawImage(el.flangeImg, 0, 0, el.flangeWidth * s, el.height); ctx.restore();
+                ctx.save(); ctx.translate(pR * s, 0); ctx.rotate(-rotOffset);
+                if (el.flangeImg) ctx.drawImage(el.flangeImg, 0, 0, el.flangeWidth * s, el.height); ctx.restore();
+                ctx.restore();
+                if (selectedElements.includes(el)) {
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5 / scale; ctx.setLineDash([5 / scale, 5 / scale]);
+                    ctx.strokeRect(el.x - 2 / scale, el.y - 2 / scale, el.width + 4 / scale, el.height + 4 / scale); ctx.setLineDash([]);
+                }
+                ctx.restore();
+            });
+
+            elements.filter(e => e.type === 'assembly_leg').forEach(el => {
+                const s = el.scaleFactor;
+                const st = el.parts.stuetze, te = el.parts.teleskop, pl = el.parts.platte;
+                const stW = st.width * s, stH = st.height * s; const teW = te.width * s, teH = te.height * s; const plW = pl.width * s, plH = pl.height * s;
+                const extH = (el.extension + 250) * s;
+                ctx.save(); let ops = getTransformOps(el.parent || el);
+                for (let op of ops) { ctx.translate(op.cx, op.cy); ctx.rotate((-op.angle * Math.PI) / 180); ctx.translate(-op.cx, -op.cy); }
+                const teX = el.x + (stW / 2) - (teW / 2); const teY = el.y + (stH * 0.1) * s + extH;
+                ctx.drawImage(te.img, teX, teY, teW, teH); ctx.drawImage(st.img, el.x, el.y, stW, stH);
+                let teConnX = teW / 2, teConnY = teH;
+                if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
+                let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
+                ctx.save(); ctx.translate(teX + teConnX, teY + teConnY);
+                ctx.rotate(((el.parent ? getGlobalAngle(el.parent) : 0) * Math.PI) / 180);
+                ctx.drawImage(pl.img, -(topConn.x * s), -(topConn.y * s), plW, plH);
+                if (el.baseType === 'sockel') {
+                    let sW = 400 * SCALE_GLOBAL; let sH = (el.baseHeight || 150) * SCALE_GLOBAL;
+                    ctx.fillStyle = '#94a3b8'; ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5 / scale;
+                    ctx.fillRect(-sW / 2, (plH - (topConn.y * s)), sW, sH); ctx.strokeRect(-sW / 2, (plH - (topConn.y * s)), sW, sH);
+                } else if (el.baseType === 'heb120' && el.baseImg && el.baseData) {
+                    let sW = el.baseData.width * SCALE_GLOBAL; let sH = el.baseData.height * SCALE_GLOBAL;
+                    let cX = sW / 2, cY = 0;
+                    if (el.baseData.connectors && el.baseData.connectors.length > 0) { cX = el.baseData.connectors[0].x * SCALE_GLOBAL; cY = el.baseData.connectors[0].y * SCALE_GLOBAL; }
+                    ctx.drawImage(el.baseImg, -cX, (plH - (topConn.y * s)) - cY, sW, sH);
+                }
+                ctx.restore();
+                if (selectedElements.includes(el)) {
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5 / scale; ctx.setLineDash([5 / scale, 5 / scale]);
+                    ctx.strokeRect(el.x - 2 / scale, el.y - 2 / scale, stW + 4 / scale, ((teY + teH + (plH - (topConn.y * s))) - el.y) + 4 / scale); ctx.setLineDash([]);
+                }
+                if (isLegDragged) {
+                    ctx.beginPath(); ctx.arc(el.x + (el.connector.x * s), el.y + (el.connector.y * s), 5 / scale, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f97316'; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / scale; ctx.stroke();
+                }
+                ctx.restore();
+            });
+            renderReactionForces(); renderHeightKoten(); renderDimensions(); renderTributaryAreas();
+            ctx.restore();
+        }
+    </script>
+</body>
+</html>
