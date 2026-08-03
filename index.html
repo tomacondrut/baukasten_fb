@@ -1830,27 +1830,31 @@ function getWeightInInterval(profile, L, R) {
         // ==========================================
         // MODULE 8: RENDER ENGINE
         // ==========================================
-        function getLegBottomWorldCenter(leg) {
-            const s = leg.scaleFactor;
-            const pl = leg.parts.platte; const te = leg.parts.teleskop;
-            const stW = leg.parts.stuetze.width * s; const teW = te.width * s;
-            const extH = (leg.extension + 250) * s;
-            const teX = leg.x + (stW / 2) - (teW / 2); const teY = leg.y + (leg.parts.stuetze.height * 0.1) * s + extH;
+// [BREADCRUMB: V21 - FIX ROTATION & PFEIL-TEXT AUSRICHTUNG]
+function getLegBottomWorldCenter(leg) {
+    const s = leg.scaleFactor;
+    const pl = leg.parts.platte; const te = leg.parts.teleskop;
+    const stW = leg.parts.stuetze.width * s; const teW = te.width * s;
+    const extH = (leg.extension + 250) * s;
+    const teX = leg.x + (stW / 2) - (teW / 2); const teY = leg.y + (leg.parts.stuetze.height * 0.1) * s + extH;
 
-            let teConnX = teW / 2, teConnY = te.height * s;
-            if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
+    let teConnX = teW / 2, teConnY = te.height * s;
+    if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
 
-            let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
-            let bottomConn = (pl.connectors && pl.connectors.find(c => c.type === 'bottom_connector')) || { x: pl.width / 2, y: pl.height };
+    let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
+    let bottomConn = (pl.connectors && pl.connectors.find(c => c.type === 'bottom_connector')) || { x: pl.width / 2, y: pl.height };
 
-            const jointLocal = { x: teX + teConnX, y: teY + teConnY };
-            const jointWorld = leg.parent ? transformPoint(jointLocal, [...getTransformOps(leg.parent)].reverse()) : jointLocal;
+    const jointLocal = { x: teX + teConnX, y: teY + teConnY };
+    
+    // WICHTIG: Die reverse() Funktion garantiert, dass die Matrix-Transformation 
+    // für die globalen Koordinaten akkurat berechnet wird.
+    const jointWorld = leg.parent ? transformPoint(jointLocal, [...getTransformOps(leg.parent)].reverse()) : jointLocal;
 
-            let dx = (bottomConn.x - topConn.x) * s;
-            let dy = (bottomConn.y - topConn.y) * s;
+    let dx = (bottomConn.x - topConn.x) * s;
+    let dy = (bottomConn.y - topConn.y) * s;
 
-            return { x: jointWorld.x + dx, y: jointWorld.y + dy };
-        }
+    return { x: jointWorld.x + dx, y: jointWorld.y + dy };
+}
 
         function renderTributaryAreas() {
             const toggle = document.getElementById('toggle-einzugsflaechen');
@@ -2005,134 +2009,135 @@ function getWeightInInterval(profile, L, R) {
         }
 
         function renderReactionForces() {
-            const toggle = document.getElementById('toggle-forces'); if (!toggle || !toggle.checked) return;
-            let allLegData = [];
+    const toggle = document.getElementById('toggle-forces'); if (!toggle || !toggle.checked) return;
+    let allLegData = [];
 
-            getSystems().forEach(group => {
-                let totalWeight = 0; let momentSum = 0;
-                let minX = Infinity, maxX = -Infinity;
+    getSystems().forEach(group => {
+        let totalWeight = 0; let momentSum = 0;
+        let minX = Infinity, maxX = -Infinity;
+        group.forEach(el => {
+            let p = getElementWeightProfile(el);
+            if (p) {
+                totalWeight += p.weight;
+                momentSum += p.weight * p.cgX;
+                if (p.minX < minX) minX = p.minX;
+                if (p.maxX > maxX) maxX = p.maxX;
+            }
+        });
+
+        let legs = group.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+        let legItems = legs.map((leg, idx) => {
+            let arrowTipWorld = getLegBottomWorldCenter(leg);
+            
+            let baseH = 0;
+            if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
+            else if (leg.baseType === 'heb120' && leg.baseData) {
+                baseH = leg.baseData.height * SCALE_GLOBAL;
+                if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+            }
+            return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y, baseH: baseH, localIdx: 0 };
+        }).sort((a, b) => a.x - b.x);
+
+        legItems.forEach((item, idx) => item.localIdx = idx + 1);
+
+        let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+        let F_tot_kN = totalWeight * 9.81 / 1000;
+        let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+
+        if (legItems.length === 1) {
+            legItems[0].forceKN = F_tot_kN;
+            allLegData.push(legItems[0]);
+        } else if (legItems.length === 2) {
+            let x1 = legItems[0].x; let x2 = legItems[1].x;
+            if (Math.abs(x2 - x1) < 1) {
+                legItems[0].forceKN = F_tot_kN / 2;
+                legItems[1].forceKN = F_tot_kN / 2;
+            } else {
+                let F2 = F_tot_kN * (X_cg - x1) / (x2 - x1);
+                let F1 = F_tot_kN - F2;
+                legItems[0].forceKN = F1;
+                legItems[1].forceKN = F2;
+            }
+            allLegData.push(legItems[0], legItems[1]);
+        } else {
+            legItems.forEach((item, i) => {
+                let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
+                let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
+
+                let f_teil_kg = 0;
                 group.forEach(el => {
                     let p = getElementWeightProfile(el);
-                    if (p) {
-                        totalWeight += p.weight;
-                        momentSum += p.weight * p.cgX;
-                        if (p.minX < minX) minX = p.minX;
-                        if (p.maxX > maxX) maxX = p.maxX;
-                    }
+                    if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound);
                 });
-
-                let legs = group.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
-                let legItems = legs.map((leg, idx) => {
-                    let arrowTipWorld = getLegBottomWorldCenter(leg);
-
-                    let baseH = 0;
-                    if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
-                    else if (leg.baseType === 'heb120' && leg.baseData) {
-                        baseH = leg.baseData.height * SCALE_GLOBAL;
-                        if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
-                    }
-
-                    return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y, baseH: baseH, localIdx: 0 };
-                }).sort((a, b) => a.x - b.x);
-
-                // Lokalen Index nach x-Sortierung zuweisen (F1, F2...)
-                legItems.forEach((item, idx) => item.localIdx = idx + 1);
-
-                let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-                let F_tot_kN = totalWeight * 9.81 / 1000;
-                let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
-
-                if (legItems.length === 1) {
-                    legItems[0].forceKN = F_tot_kN;
-                    allLegData.push(legItems[0]);
-                } else if (legItems.length === 2) {
-                    let x1 = legItems[0].x; let x2 = legItems[1].x;
-                    if (Math.abs(x2 - x1) < 1) {
-                        legItems[0].forceKN = F_tot_kN / 2;
-                        legItems[1].forceKN = F_tot_kN / 2;
-                    } else {
-                        let F2 = F_tot_kN * (X_cg - x1) / (x2 - x1);
-                        let F1 = F_tot_kN - F2;
-                        legItems[0].forceKN = F1;
-                        legItems[1].forceKN = F2;
-                    }
-                    allLegData.push(legItems[0], legItems[1]);
-                } else {
-                    legItems.forEach((item, i) => {
-                        let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
-                        let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
-
-                        let f_teil_kg = 0;
-                        group.forEach(el => {
-                            let p = getElementWeightProfile(el);
-                            if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound);
-                        });
-                        item.forceKN = f_teil_kg * 9.81 / 1000;
-                        allLegData.push(item);
-                    });
-                }
+                item.forceKN = f_teil_kg * 9.81 / 1000;
+                allLegData.push(item);
             });
-
-            if (allLegData.length === 0) return;
-            let maxGlobalF = 0;
-            let maxWorldY = -Infinity;
-            allLegData.forEach(item => {
-                if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
-                let yWithBase = item.y + item.baseH;
-                if (yWithBase > maxWorldY) maxWorldY = yWithBase;
-            });
-            if (maxGlobalF === 0) maxGlobalF = 1;
-
-            // Einheitliche Y-Zielkoordinate für die Enden der Pfeile (unterhalb der Maßketten)
-            let gap = 200 * SCALE_GLOBAL / scale;
-            let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
-            let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
-
-            ctx.save();
-            ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1.5 / scale;
-
-            allLegData.forEach(item => {
-                let isUplift = item.forceKN < 0;
-                let absF = Math.abs(item.forceKN);
-                let ratio = absF / maxGlobalF;
-
-                let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
-                let lx = item.x;
-                let ly = item.y + item.baseH; // Kraft wirkt ganz unten am Boden/Sockel
-
-                ctx.strokeStyle = color; ctx.fillStyle = color;
-
-                let ahW = 8 / scale, ahH = 16 / scale;
-
-                // Gestrichelte Pfeillinie bis zur Maßkette verlängert
-                ctx.beginPath();
-                ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
-                ctx.moveTo(lx, arrowTailY);
-                ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
-                ctx.stroke();
-                ctx.setLineDash([]);
-
-                // Pfeilspitze (gefüllt)
-                ctx.beginPath();
-                if (isUplift) {
-                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
-                } else {
-                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
-                }
-
-                // Beschriftung 90° gedreht, sodass "kN" direkt unter dimY2 sitzt
-                let stateText = isUplift ? ' (ZUG)' : '';
-                let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
-
-                ctx.save();
-                ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
-                ctx.rotate(-Math.PI / 2);
-                ctx.textAlign = 'right'; // Damit endet der String "kN" direkt am Nullpunkt der Verschiebung
-                ctx.fillText(forceLabel, 0, 0);
-                ctx.restore();
-            });
-            ctx.restore();
         }
+    });
+
+    if (allLegData.length === 0) return;
+    
+    let maxGlobalF = 0;
+    let maxWorldY = -Infinity;
+    allLegData.forEach(item => { 
+        if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN); 
+        let yWithBase = item.y + item.baseH;
+        if (yWithBase > maxWorldY) maxWorldY = yWithBase;
+    });
+    if (maxGlobalF === 0) maxGlobalF = 1;
+    
+    // Ermittlung der Basis-Linien für die Verlängerung
+    let gap = 200 * SCALE_GLOBAL / scale;
+    let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+    let arrowTailY = dimY2 + 200 * SCALE_GLOBAL / scale; // Zieht die Linie weit genug nach unten
+
+    ctx.save();
+    ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; 
+    ctx.textAlign = 'center'; 
+    ctx.textBaseline = 'middle'; 
+    ctx.lineWidth = 1.5 / scale;
+
+    allLegData.forEach(item => {
+        let isUplift = item.forceKN < 0;
+        let absF = Math.abs(item.forceKN);
+        let ratio = absF / maxGlobalF;
+
+        let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
+        let lx = item.x; 
+        let ly = item.y + item.baseH; // Kraft-Angriffspunkt
+
+        ctx.strokeStyle = color; ctx.fillStyle = color;
+        let ahW = 8 / scale, ahH = 16 / scale;
+
+        // Gestrichelte Linie bis zum unteren Ende
+        ctx.beginPath();
+        ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
+        ctx.moveTo(lx, isUplift ? ly - ahH : ly + ahH);
+        ctx.lineTo(lx, arrowTailY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Pfeilspitze
+        ctx.beginPath();
+        if (isUplift) {
+            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
+        } else {
+            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
+        }
+
+        let stateText = isUplift ? ' (ZUG)' : '';
+        let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
+
+        ctx.save();
+        // Positionierung des Textes: x nach links versetzt, y exakt unterhalb der dimY2 Linie
+        ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
+        ctx.rotate(-Math.PI / 2); // Text um 90° gegen den Uhrzeigersinn
+        ctx.textAlign = 'right';  // Sorgt dafür, dass das "kN" direkt am oberen Nullpunkt aufhört
+        ctx.fillText(forceLabel, 0, 0);
+        ctx.restore();
+    });
+    ctx.restore();
+}
 
         function draw() {
             const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
