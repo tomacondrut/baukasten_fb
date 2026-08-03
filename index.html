@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <!-- [BREADCRUMB: V17 - FINAL PRINT & VERTICAL LEGS FIX]
-         FEHLER 1: Fehlende CSS-Klammer zerstörte das PDF-Layout.
-         FEHLER 2: Stützen rotierten fälschlicherweise mit dem Bandwinkel mit (seitlicher Pfeil-Versatz).
-         LÖSUNG: CSS repariert, Drucktabelle hinzugefügt. Stützen rendern nun isoliert vom Bandwinkel absolut lotrecht. -->
+    <!-- [BREADCRUMB: V22 - FIX BOUNDING BOX & PFEIL POSITION]
+         FEHLER 1: Der untere Konnektor der Stützplatte rotierte fälschlicherweise bei schrägen Bändern mit.
+         FEHLER 2: Die blaue Bounding-Box bei Selektion der Stütze ignorierte die Höhe der Bodenplatte.
+         LÖSUNG: Absolute vertikale Addition in getLegBottomWorldCenter und Korrektur der Höhe in getElementWorldBounds. -->
+    <!-- [BREADCRUMB: V23 - FIX ARROW OFFSET & CUSTOM ALERTS]
+         FEHLER 1: Reaktionskraft-Pfeile waren optisch nach unten versetzt, da die Stütze in draw() durch eine doppelte Skalierung ((stH * 0.1) * s) zu weit oben gezeichnet wurde.
+         FEHLER 2: Browser-native alert()-Popups wirkten unprofessionell und blockierten den Workflow.
+         LÖSUNG: Doppelte Skalierung in draw() entfernt und ein sauberes, in-app Toast-Benachrichtigungssystem integriert. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Förderband Baukasten Pro</title>
@@ -436,12 +440,46 @@
                 color: #fff;
             }
 
+        /* Custom Toast Notifications */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast-msg {
+            background: #1e293b;
+            color: #f87171;
+            border: 1px solid #ef4444;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+            .toast-msg.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
         /* Print styles */
         #print-header, #print-border, #print-report, #print-statics-table {
             display: none;
         }
 
-        /* [BREADCRUMB: V16 - FIX PRINT CSS OVERFLOW] */
         @media print {
             @page {
                 size: A2 landscape !important;
@@ -457,7 +495,7 @@
                 background-color: #fff;
             }
 
-            #sidebar, #toolbar, #stats-bar, #action-menu, .modal-overlay {
+            #sidebar, #toolbar, #stats-bar, #action-menu, .modal-overlay, #toast-container {
                 display: none !important;
             }
 
@@ -529,13 +567,13 @@
                 color: #000;
             }
 
-            /* Neue Tabelle für die Kräfte unten links */
             #print-statics-table {
                 display: block !important;
                 position: fixed;
                 bottom: 10mm;
                 left: 10mm;
-                width: 32mm; /* Deutlich schmalere Tabelle */
+                width: auto;
+                min-width: 35mm;
                 border: 0.35mm solid #000;
                 background: #fff;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -578,12 +616,13 @@
             }
 
             .tb-logo {
-                background: #fff; /* Reines Weiß für Feng-Shui Ästhetik */
+                background: #fff;
             }
         }
     </style>
 </head>
 <body>
+    <div id="toast-container"></div>
     <div id="print-border"></div>
     <div id="print-report">
         <h4>Anlagen-Bericht</h4>
@@ -591,34 +630,19 @@
         <div class="rep-row" id="print-report-weight" style="font-weight: bold; margin-top: 2mm;"></div>
     </div>
 
-    <!-- [BREADCRUMB: V20 - REMOVE LOGO DROP-SHADOW] -->
     <div id="print-header">
         <div class="tb-row">
-            <div class="tb-cell tb-logo" style="width: 100%; padding: 4mm 0; display: flex; justify-content: center; align-items: center;">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAAjJb2w86L8F8qhLZ2Pm1qh2vOXiwZZpsgvMTKa7iDCsxsuPAy4LD9CuM&s=10" alt="STAG Logo" style="max-height: 13mm; object-fit: contain;">
+            <div class="tb-cell tb-logo" style="width: 100%; padding: 3mm 0; display: flex; justify-content: center; align-items: center;">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAAjJb2w86L8F8qhLZ2Pm1qh2vOXiwZZpsgvMTKa7iDCsxsuPAy4LD9CuM&s=10" alt="STAG Logo" style="max-height: 12mm; object-fit: contain;">
             </div>
         </div>
         <div class="tb-row">
-            <div class="tb-cell" style="flex: 2;">
-                <div class="tb-label">Projekt / Objekt-Nr.</div>
-                <div class="tb-val" id="print-obj-nr">OBJEKT-NR.</div>
-            </div>
-            <div class="tb-cell" style="flex: 2;">
-                <div class="tb-label">Förderband-ID</div>
-                <div class="tb-val" id="print-fb-id">FÖRDERBAND-ID</div>
-                <div class="tb-label" style="margin-top: 1.5mm;">Ersteller</div>
-                <div class="tb-val" id="print-ersteller">STA</div>
-            </div>
+            <div class="tb-cell" style="flex: 2;"><div class="tb-label">Projekt / Objekt-Nr.</div><div class="tb-val" id="print-obj-nr">OBJEKT-NR.</div></div>
+            <div class="tb-cell" style="flex: 2;"><div class="tb-label">Förderband-ID</div><div class="tb-val" id="print-fb-id">FÖRDERBAND-ID</div><div class="tb-label" style="margin-top: 1.5mm;">Ersteller</div><div class="tb-val" id="print-ersteller">STA</div></div>
         </div>
         <div class="tb-row">
-            <div class="tb-cell" style="flex: 1;">
-                <div class="tb-label">Datum</div>
-                <div class="tb-val" id="print-date"></div>
-            </div>
-            <div class="tb-cell" style="flex: 1;">
-                <div class="tb-label">Format</div>
-                <div class="tb-val">A2 Quer</div>
-            </div>
+            <div class="tb-cell" style="flex: 1;"><div class="tb-label">Datum</div><div class="tb-val" id="print-date"></div></div>
+            <div class="tb-cell" style="flex: 1;"><div class="tb-label">Format</div><div class="tb-val">A2 Quer</div></div>
         </div>
     </div>
 
@@ -790,6 +814,21 @@
         // ==========================================
         // MODULE 2: UI, MODALS & PRINT
         // ==========================================
+        function showNotification(msg) {
+            let container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.innerHTML = `<span>⚠️</span> <span>${msg}</span>`;
+            container.appendChild(toast);
+            void toast.offsetWidth; // Trigger reflow
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
         function openMetaModal() {
             document.getElementById('input-obj-nr').value = projMeta.objNr === "OBJEKT-NR." ? "" : projMeta.objNr;
             document.getElementById('input-fb-id').value = projMeta.fbId === "FÖRDERBAND-ID" ? "" : projMeta.fbId;
@@ -881,95 +920,93 @@
         }
         function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
 
-// [BREADCRUMB: V19 - BEREINIGTER A2-DRUCK & CLEAN TABLE]
-function executePrint() {
-    document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
-    document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
-    document.getElementById('toggle-massketten').checked = document.getElementById('print-opt-massketten').checked;
+        function executePrint() {
+            document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
+            document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
+            document.getElementById('toggle-massketten').checked = document.getElementById('print-opt-massketten').checked;
 
-    document.getElementById('print-obj-nr').innerText = projMeta.objNr;
-    document.getElementById('print-fb-id').innerText = projMeta.fbId;
-    document.getElementById('print-ersteller').innerText = projMeta.ersteller || "-";
-    document.getElementById('print-date').innerText = new Date().toLocaleDateString('de-DE');
-    document.getElementById('print-report-elements').innerHTML = document.getElementById('stat-elements').innerHTML;
-    document.getElementById('print-report-weight').innerHTML = document.getElementById('stat-weight').innerHTML;
+            document.getElementById('print-obj-nr').innerText = projMeta.objNr;
+            document.getElementById('print-fb-id').innerText = projMeta.fbId;
+            document.getElementById('print-ersteller').innerText = projMeta.ersteller || "-";
+            document.getElementById('print-date').innerText = new Date().toLocaleDateString('de-DE');
+            document.getElementById('print-report-elements').innerHTML = document.getElementById('stat-elements').innerHTML;
+            document.getElementById('print-report-weight').innerHTML = document.getElementById('stat-weight').innerHTML;
 
-    // Statik-Tabelle befüllen (Ohne System 1 Headline)
-    let staticsTableHtml = '';
-    getSystems().forEach((group) => {
-        let totalWeight = 0; let momentSum = 0; let minX = Infinity, maxX = -Infinity;
-        group.forEach(el => {
-            let p = getElementWeightProfile(el);
-            if (p) { totalWeight += p.weight; momentSum += p.weight * p.cgX; if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX; }
-        });
-        let legs = group.filter(e => e.type === 'assembly_leg').map(leg => ({ leg, x: getLegBottomWorldCenter(leg).x })).sort((a, b) => a.x - b.x);
-        let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-        let F_tot = totalWeight * 9.81 / 1000;
-        let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+            let staticsTableHtml = '';
+            getSystems().forEach((group) => {
+                let totalWeight = 0; let momentSum = 0; let minX = Infinity, maxX = -Infinity;
+                group.forEach(el => {
+                    let p = getElementWeightProfile(el);
+                    if (p) { totalWeight += p.weight; momentSum += p.weight * p.cgX; if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX; }
+                });
+                let legs = group.filter(e => e.type === 'assembly_leg').map(leg => ({ leg, x: getLegBottomWorldCenter(leg).x })).sort((a, b) => a.x - b.x);
+                let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+                let F_tot = totalWeight * 9.81 / 1000;
+                let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
 
-        if (legs.length === 1) {
-            staticsTableHtml += `F1 = ${F_tot.toFixed(2)} kN<br>`;
-        } else if (legs.length === 2) {
-            let L_px = legs[1].x - legs[0].x;
-            if (Math.abs(L_px) < 1) {
-                staticsTableHtml += `F1 = ${(F_tot / 2).toFixed(2)} kN<br>F2 = ${(F_tot / 2).toFixed(2)} kN<br>`;
-            } else {
-                let a_px = X_cg - legs[0].x;
-                let F2 = F_tot * (a_px / L_px); let F1 = F_tot - F2;
-                staticsTableHtml += `F1 = ${F1.toFixed(2)} kN ${F1 < 0 ? '(ZUG)' : ''}<br>`;
-                staticsTableHtml += `F2 = ${F2.toFixed(2)} kN ${F2 < 0 ? '(ZUG)' : ''}<br>`;
-            }
-        } else if (legs.length > 2) {
-            legs.forEach((item, i) => {
-                let leftBound = i === 0 ? minX : (legs[i - 1].x + item.x) / 2;
-                let rightBound = i === legs.length - 1 ? maxX : (item.x + legs[i + 1].x) / 2;
-                let f_teil_kg = 0;
-                group.forEach(el => { let p = getElementWeightProfile(el); if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound); });
-                let f_kN = f_teil_kg * 9.81 / 1000;
-                staticsTableHtml += `F${i + 1} = ${f_kN.toFixed(2)} kN<br>`;
+                if (legs.length > 0) staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
+                if (legs.length === 1) {
+                    staticsTableHtml += `F1 = ${F_tot.toFixed(2)} kN<br>`;
+                } else if (legs.length === 2) {
+                    let L_px = legs[1].x - legs[0].x;
+                    if (Math.abs(L_px) < 1) {
+                        staticsTableHtml += `F1 = ${(F_tot / 2).toFixed(2)} kN<br>F2 = ${(F_tot / 2).toFixed(2)} kN<br>`;
+                    } else {
+                        let a_px = X_cg - legs[0].x;
+                        let F2 = F_tot * (a_px / L_px); let F1 = F_tot - F2;
+                        staticsTableHtml += `F1 = ${F1.toFixed(2)} kN ${F1 < 0 ? '(ZUG)' : ''}<br>`;
+                        staticsTableHtml += `F2 = ${F2.toFixed(2)} kN ${F2 < 0 ? '(ZUG)' : ''}<br>`;
+                    }
+                } else if (legs.length > 2) {
+                    legs.forEach((item, i) => {
+                        let leftBound = i === 0 ? minX : (legs[i - 1].x + item.x) / 2;
+                        let rightBound = i === legs.length - 1 ? maxX : (item.x + legs[i + 1].x) / 2;
+                        let f_teil_kg = 0;
+                        group.forEach(el => { let p = getElementWeightProfile(el); if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound); });
+                        let f_kN = f_teil_kg * 9.81 / 1000;
+                        staticsTableHtml += `F${i + 1} = ${f_kN.toFixed(2)} kN<br>`;
+                    });
+                }
+                if (legs.length > 0) staticsTableHtml += `</div>`;
             });
+            document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+            closePrintModal();
+
+            let printStyleEl = document.getElementById('dynamic-print-style');
+            if (!printStyleEl) {
+                printStyleEl = document.createElement('style');
+                printStyleEl.id = 'dynamic-print-style';
+                document.head.appendChild(printStyleEl);
+            }
+
+            printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
+            let printW_px = 594 * 3.7795;
+            let printH_px = 420 * 3.7795;
+
+            window.isPrintingActive = true;
+            window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
+
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = printW_px * window.printDpr;
+            canvas.height = printH_px * window.printDpr;
+
+            smartCenterView(true, printW_px, printH_px);
+            draw();
+
+            const originalTitle = document.title;
+            const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
+            document.title = pdfName;
+
+            setTimeout(() => {
+                window.print();
+                document.title = originalTitle;
+                window.isPrintingActive = false;
+                canvas.width = rect.width * (window.devicePixelRatio || 1);
+                canvas.height = rect.height * (window.devicePixelRatio || 1);
+                smartCenterView(false);
+                draw();
+            }, 500);
         }
-    });
-    document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
-    closePrintModal();
-
-    let printStyleEl = document.getElementById('dynamic-print-style');
-    if (!printStyleEl) {
-        printStyleEl = document.createElement('style');
-        printStyleEl.id = 'dynamic-print-style';
-        document.head.appendChild(printStyleEl);
-    }
-
-    // Hardcode A2 Layout
-    printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
-    let printW_px = 594 * 3.7795;
-    let printH_px = 420 * 3.7795;
-
-    window.isPrintingActive = true;
-    window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
-
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = printW_px * window.printDpr;
-    canvas.height = printH_px * window.printDpr;
-
-    smartCenterView(true, printW_px, printH_px);
-    draw();
-
-    const originalTitle = document.title;
-    const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ?
-        `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
-    document.title = pdfName;
-
-    setTimeout(() => {
-        window.print();
-        document.title = originalTitle;
-        window.isPrintingActive = false;
-        canvas.width = rect.width * (window.devicePixelRatio || 1);
-        canvas.height = rect.height * (window.devicePixelRatio || 1);
-        smartCenterView(false);
-        draw();
-    }, 500);
-}
 
         function openSettings(key) {
             currentSettingKey = key; const set = moduleSettings[key];
@@ -1051,229 +1088,230 @@ function executePrint() {
                     }
                     loadedElements.forEach(el => { if (el.parentId) el.parent = loadedElements.find(p => p.id === el.parentId) || null; });
                     elements = loadedElements; updateStats(); smartCenterView();
-                } catch (err) { alert("Fehler beim Laden der .stag Datei."); }
+                } catch (err) { showNotification("Fehler beim Laden der .stag Datei."); }
                 document.getElementById('file-loader').value = "";
             };
             reader.readAsText(file);
-}
-
+        }
 // ==========================================
-// MODULE 4: MATH & GEOMETRY
-// Reines Rechnen: Transformationsmatrizen, Bounding-Boxen und Connector-Logik
-// ==========================================
-
-// [BREADCRUMB: V18 - KOORDINATENSYSTEM & ROTATIONS-FIX]
-// PROBLEM: Bei geneigten Bändern verschoben sich die Stützen-Koordinaten leicht seitlich,
-// da Matrizen in der falschen Reihenfolge aufgelöst wurden (Local -> World vs World -> Local).
-// LÖSUNG: Strikte Umkehrung (.reverse()) der Operationen für alle Transformationen
-// von lokalen SVG-Punkten in globale Canvas-Punkte.
-
-function getViewportCenter() { return { x: (canvas.parentElement.clientWidth / 2 - panX) / scale, y: (canvas.parentElement.clientHeight / 2 - panY) / scale }; }
-function getCanvasCoords(e) {
-    const rect = canvas.parentElement.getBoundingClientRect();
-    return { x: (e.clientX - rect.left - panX) / scale, y: (e.clientY - rect.top - panY) / scale };
-}
-function getElementKey(el) {
-    if (el.type === 'knick') return 'knick';
-    if (el.filename) {
-        if (el.filename.includes('2480')) return '2480.svg';
-        if (el.filename.includes('3720')) return '3720.svg';
-        return el.filename;
-    }
-    return null;
-}
-
-function getConnectedGroup(root) {
-    let group = new Set();
-    function traverse(el) {
-        if (!el || group.has(el)) return;
-        group.add(el);
-        if (el.parent) traverse(el.parent);
-        elements.forEach(o => { if (o.parent === el) traverse(o); });
-    }
-    traverse(root); return Array.from(group);
-}
-
-function isLeftConnector(el, conn) {
-    if (el.type === 'knick') return conn.flangeSide === 'left';
-    let nativeX = conn.x; if (el.mirrored) nativeX = (el.width / el.scaleFactor) - nativeX;
-    return nativeX < (el.width / el.scaleFactor) / 2;
-}
-
-function getTransformOps(el) {
-    let ops = []; let curr = el; let root = getChainRoot(el); let path = [];
-    while (curr) { path.push(curr); curr = curr.parent; } path.reverse();
-
-    if (root && root.chainAngle) {
-        let rootFlanges = getFlangeConnectors(root);
-        let cx = root.x, cy = root.y;
-        if (rootFlanges.left) {
-            let off = getLocalFlangeOffset(root, rootFlanges.left);
-            cx = root.x + off.x; cy = root.y + off.y;
+        // MODULE 4: MATH & GEOMETRY
+        // ==========================================
+        function getViewportCenter() { return { x: (canvas.parentElement.clientWidth / 2 - panX) / scale, y: (canvas.parentElement.clientHeight / 2 - panY) / scale }; }
+        function getCanvasCoords(e) {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            return { x: (e.clientX - rect.left - panX) / scale, y: (e.clientY - rect.top - panY) / scale };
         }
-        ops.push({ type: 'rotate', angle: root.chainAngle, cx: cx, cy: cy });
-    }
-    for (let i = 0; i < path.length - 1; i++) {
-        let node = path[i]; let nextNode = path[i + 1];
-        let isRightOfParent = nextNode.x > node.x + (node.width / node.scaleFactor) * node.scaleFactor * 0.4;
-        let parentAngle = 0; if (node.type === 'knick') parentAngle = isRightOfParent ? (node.knickAngle / 2) : -(node.knickAngle / 2);
-        let childAngle = 0; if (nextNode.type === 'knick') childAngle = isRightOfParent ? (nextNode.knickAngle / 2) : -(nextNode.knickAngle / 2);
-        let relAngle = parentAngle + childAngle;
-
-        if (relAngle !== 0) {
-            let pFlanges = getFlangeConnectors(node);
-            let pConn = isRightOfParent ? pFlanges.right : pFlanges.left;
-            let pivotX = node.x, pivotY = node.y;
-            if (pConn) { let off = getLocalFlangeOffset(node, pConn); pivotX = node.x + off.x; pivotY = node.y + off.y; }
-            ops.push({ type: 'rotate', angle: relAngle, cx: pivotX, cy: pivotY });
-        }
-    }
-    return ops;
-}
-
-function getGlobalAngle(el) {
-    let ops = getTransformOps(el); let sum = 0; for (let o of ops) sum += o.angle; return sum;
-}
-
-function transformPoint(pt, ops) {
-    let x = pt.x, y = pt.y;
-    for (let op of ops) {
-        if (op.type === 'rotate') {
-            let rad = (-op.angle * Math.PI) / 180;
-            let dx = x - op.cx; let dy = y - op.cy;
-            x = op.cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-            y = op.cy + dx * Math.sin(rad) + dy * Math.cos(rad);
-        }
-    }
-    return { x, y };
-}
-
-function getLocalFlangeOffset(el, c) {
-    if (!c) return { x: 0, y: 0 };
-    if (el.type === 'knick') {
-        const origRad = (4.0) * Math.PI / 180; const newRad = (el.knickAngle / 2) * Math.PI / 180; const rotOffset = newRad - origRad;
-        if (c.flangeSide === 'left') {
-            let x = el.bodyData.nativePivotL - c.nativeFlangeX * Math.cos(rotOffset) - c.nativeFlangeY * Math.sin(rotOffset);
-            let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
-            return { x: x * el.scaleFactor, y: y * el.scaleFactor };
-        } else if (c.flangeSide === 'right') {
-            let x = el.bodyData.nativePivotR + c.nativeFlangeX * Math.cos(rotOffset) + c.nativeFlangeY * Math.sin(rotOffset);
-            let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
-            return { x: x * el.scaleFactor, y: y * el.scaleFactor };
-        }
-    }
-    let cx = c.x, cy = c.y; if (el.mirrored) cx = (el.width / el.scaleFactor) - cx;
-    return { x: cx * el.scaleFactor, y: cy * el.scaleFactor };
-}
-
-function getConnectorWorldPos(el, c) {
-    let localOff = getLocalFlangeOffset(el, c);
-    let pt = { x: el.x + localOff.x, y: el.y + localOff.y };
-    return transformPoint(pt, [...getTransformOps(el)].reverse());
-}
-
-function getLegConnectorWorldPos(leg) {
-    const s = leg.scaleFactor; let pt = { x: leg.x + (leg.connector.x * s), y: leg.y + (leg.connector.y * s) };
-    if (leg.parent) pt = transformPoint(pt, [...getTransformOps(leg.parent)].reverse());
-    return pt;
-}
-
-function getElementWorldBounds(el) {
-    let w = el.width, h = el.height;
-    if (el.type === 'assembly_leg') {
-        const s = el.scaleFactor; w = el.parts.stuetze.width * s; h = (el.parts.stuetze.height * 0.4) * s + el.extension * s + (el.parts.teleskop.height * s);
-    } else if (el.type === 'knick') {
-        const scaleXFactor = Math.abs(el.knickAngle) / 8.0; w = el.width * Math.max(scaleXFactor, 1.0);
-    }
-    let corners = [{ x: el.x, y: el.y }, { x: el.x + w, y: el.y }, { x: el.x + w, y: el.y + h }, { x: el.x, y: el.y + h }];
-    corners = corners.map(pt => transformPoint(pt, [...getTransformOps(el)].reverse()));
-    let minX = Math.min(...corners.map(c => c.x)); let maxX = Math.max(...corners.map(c => c.x));
-    let minY = Math.min(...corners.map(c => c.y)); let maxY = Math.max(...corners.map(c => c.y));
-    return { corners, minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
-}
-
-function isConnectorOccupied(targetEl, targetConn) {
-    let targetWorld = getConnectorWorldPos(targetEl, targetConn);
-    for (let e of elements) {
-        if (e === targetEl || dragGroup.includes(e) || !e.connectors) continue;
-        for (let c of e.connectors) {
-            if (c.type === targetConn.type) {
-                let eWorld = getConnectorWorldPos(e, c);
-                if (Math.hypot(eWorld.x - targetWorld.x, eWorld.y - targetWorld.y) < 2.0) return true;
+        function getElementKey(el) {
+            if (el.type === 'knick') return 'knick';
+            if (el.filename) {
+                if (el.filename.includes('2480')) return '2480.svg';
+                if (el.filename.includes('3720')) return '3720.svg';
+                return el.filename;
             }
+            return null;
         }
-    }
-    return false;
-}
 
-function categorizeConnectors(connectors, width) {
-    let cat = []; let yGroups = [];
-    connectors.forEach(c => {
-        let added = false;
-        for (let g of yGroups) { if (Math.abs(g.y - c.y) < 5) { g.list.push(c); added = true; break; } }
-        if (!added) yGroups.push({ y: c.y, list: [c] });
-    });
-    if (connectors.length === 3 && yGroups.length === 2) {
-        yGroups.forEach(g => {
-            if (g.list.length === 2) g.list.forEach(c => cat.push({ ...c, type: 'leg' })); else g.list.forEach(c => cat.push({ ...c, type: 'flange' }));
-        });
-    } else {
-        connectors.forEach(c => {
-            const isFlange = (c.x < width * 0.08) || (c.x > width * 0.92);
-            cat.push({ ...c, type: isFlange ? 'flange' : 'leg' });
-        });
-    }
-    return cat;
-}
-
-function getElementWeightProfile(el) {
-    let key = getElementKey(el);
-    if (!key || !moduleSettings[key]) return null;
-    let set = moduleSettings[key];
-    let b = getElementWorldBounds(el);
-
-    let weight = 0;
-    if (set.weightMode === 'per_m') {
-        let lengthM = set.length || (b.width / SCALE_GLOBAL / 1000);
-        weight = set.weightVal * lengthM;
-    } else {
-        weight = set.weightVal;
-    }
-
-    let cgX = b.minX + b.width / 2;
-    let leftWeight = weight / 2;
-    let rightWeight = weight / 2;
-
-    if (key === 'antriebstation.svg') {
-        let flanges = getFlangeConnectors(el);
-        let flangeLeft = flanges.left !== null;
-        let flangeRight = flanges.right !== null;
-        if (flangeLeft && !flangeRight) {
-            cgX = b.minX + b.width * (2 / 3);
-            leftWeight = weight * (1 / 3);
-            rightWeight = weight * (2 / 3);
-        } else if (flangeRight && !flangeLeft) {
-            cgX = b.minX + b.width * (1 / 3);
-            leftWeight = weight * (2 / 3);
-            rightWeight = weight * (1 / 3);
+        function getConnectedGroup(root) {
+            let group = new Set();
+            function traverse(el) {
+                if (!el || group.has(el)) return;
+                group.add(el);
+                if (el.parent) traverse(el.parent);
+                elements.forEach(o => { if (o.parent === el) traverse(o); });
+            }
+            traverse(root); return Array.from(group);
         }
-    }
 
-    return { weight, cgX, minX: b.minX, maxX: b.maxX, leftWeight, rightWeight, width: b.width };
-}
+        function isLeftConnector(el, conn) {
+            if (el.type === 'knick') return conn.flangeSide === 'left';
+            let nativeX = conn.x; if (el.mirrored) nativeX = (el.width / el.scaleFactor) - nativeX;
+            return nativeX < (el.width / el.scaleFactor) / 2;
+        }
 
-function getWeightInInterval(profile, L, R) {
-    let mid = profile.minX + profile.width / 2;
-    function overlap(a_min, a_max, b_min, b_max) {
-        return Math.max(0, Math.min(a_max, b_max) - Math.max(a_min, b_min));
-    }
-    let w = 0;
-    let overLeft = overlap(profile.minX, mid, L, R);
-    if (overLeft > 0) w += (overLeft / (profile.width / 2)) * profile.leftWeight;
-    let overRight = overlap(mid, profile.maxX, L, R);
-    if (overRight > 0) w += (overRight / (profile.width / 2)) * profile.rightWeight;
-    return w;
-}
+        function getTransformOps(el) {
+            let ops = []; let curr = el; let root = getChainRoot(el); let path = [];
+            while (curr) { path.push(curr); curr = curr.parent; } path.reverse();
+
+            if (root && root.chainAngle) {
+                let rootFlanges = getFlangeConnectors(root);
+                let cx = root.x, cy = root.y;
+                if (rootFlanges.left) {
+                    let off = getLocalFlangeOffset(root, rootFlanges.left);
+                    cx = root.x + off.x; cy = root.y + off.y;
+                }
+                ops.push({ type: 'rotate', angle: root.chainAngle, cx: cx, cy: cy });
+            }
+            for (let i = 0; i < path.length - 1; i++) {
+                let node = path[i]; let nextNode = path[i + 1];
+                let isRightOfParent = nextNode.x > node.x + (node.width / node.scaleFactor) * node.scaleFactor * 0.4;
+                let parentAngle = 0; if (node.type === 'knick') parentAngle = isRightOfParent ? (node.knickAngle / 2) : -(node.knickAngle / 2);
+                let childAngle = 0; if (nextNode.type === 'knick') childAngle = isRightOfParent ? (nextNode.knickAngle / 2) : -(nextNode.knickAngle / 2);
+                let relAngle = parentAngle + childAngle;
+
+                if (relAngle !== 0) {
+                    let pFlanges = getFlangeConnectors(node);
+                    let pConn = isRightOfParent ? pFlanges.right : pFlanges.left;
+                    let pivotX = node.x, pivotY = node.y;
+                    if (pConn) { let off = getLocalFlangeOffset(node, pConn); pivotX = node.x + off.x; pivotY = node.y + off.y; }
+                    ops.push({ type: 'rotate', angle: relAngle, cx: pivotX, cy: pivotY });
+                }
+            }
+            return ops;
+        }
+
+        function getGlobalAngle(el) {
+            let ops = getTransformOps(el); let sum = 0; for (let o of ops) sum += o.angle; return sum;
+        }
+
+        function transformPoint(pt, ops) {
+            let x = pt.x, y = pt.y;
+            for (let op of ops) {
+                if (op.type === 'rotate') {
+                    let rad = (-op.angle * Math.PI) / 180;
+                    let dx = x - op.cx; let dy = y - op.cy;
+                    x = op.cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+                    y = op.cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+                }
+            }
+            return { x, y };
+        }
+
+        function getLocalFlangeOffset(el, c) {
+            if (!c) return { x: 0, y: 0 };
+            if (el.type === 'knick') {
+                const origRad = (4.0) * Math.PI / 180; const newRad = (el.knickAngle / 2) * Math.PI / 180; const rotOffset = newRad - origRad;
+                if (c.flangeSide === 'left') {
+                    let x = el.bodyData.nativePivotL - c.nativeFlangeX * Math.cos(rotOffset) - c.nativeFlangeY * Math.sin(rotOffset);
+                    let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
+                    return { x: x * el.scaleFactor, y: y * el.scaleFactor };
+                } else if (c.flangeSide === 'right') {
+                    let x = el.bodyData.nativePivotR + c.nativeFlangeX * Math.cos(rotOffset) + c.nativeFlangeY * Math.sin(rotOffset);
+                    let y = -c.nativeFlangeX * Math.sin(rotOffset) + c.nativeFlangeY * Math.cos(rotOffset);
+                    return { x: x * el.scaleFactor, y: y * el.scaleFactor };
+                }
+            }
+            let cx = c.x, cy = c.y; if (el.mirrored) cx = (el.width / el.scaleFactor) - cx;
+            return { x: cx * el.scaleFactor, y: cy * el.scaleFactor };
+        }
+
+        function getConnectorWorldPos(el, c) {
+            let localOff = getLocalFlangeOffset(el, c);
+            let pt = { x: el.x + localOff.x, y: el.y + localOff.y };
+            return transformPoint(pt, [...getTransformOps(el)].reverse());
+        }
+
+        function getLegConnectorWorldPos(leg) {
+            const s = leg.scaleFactor; let pt = { x: leg.x + (leg.connector.x * s), y: leg.y + (leg.connector.y * s) };
+            if (leg.parent) pt = transformPoint(pt, [...getTransformOps(leg.parent)].reverse());
+            return pt;
+        }
+
+        function getElementWorldBounds(el) {
+            let w = el.width, h = el.height;
+            if (el.type === 'assembly_leg') {
+                const s = el.scaleFactor;
+                w = el.parts.stuetze.width * s;
+                const extH = (el.extension + 250) * s;
+                const teH = el.parts.teleskop.height * s;
+                const plH = el.parts.platte.height * s;
+
+                let topConnY = 0;
+                if (el.parts.platte.connectors && el.parts.platte.connectors.length > 0) {
+                    let tc = el.parts.platte.connectors.find(c => c.type === 'top_connector');
+                    if(tc) topConnY = tc.y * s;
+                }
+                h = (el.parts.stuetze.height * 0.1) * s + extH + teH + plH - topConnY;
+            } else if (el.type === 'knick') {
+                const scaleXFactor = Math.abs(el.knickAngle) / 8.0; w = el.width * Math.max(scaleXFactor, 1.0);
+            }
+            let corners = [{ x: el.x, y: el.y }, { x: el.x + w, y: el.y }, { x: el.x + w, y: el.y + h }, { x: el.x, y: el.y + h }];
+            corners = corners.map(pt => transformPoint(pt, [...getTransformOps(el)].reverse()));
+            let minX = Math.min(...corners.map(c => c.x)); let maxX = Math.max(...corners.map(c => c.x));
+            let minY = Math.min(...corners.map(c => c.y)); let maxY = Math.max(...corners.map(c => c.y));
+            return { corners, minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+        }
+
+        function isConnectorOccupied(targetEl, targetConn) {
+            let targetWorld = getConnectorWorldPos(targetEl, targetConn);
+            for (let e of elements) {
+                if (e === targetEl || dragGroup.includes(e) || !e.connectors) continue;
+                for (let c of e.connectors) {
+                    if (c.type === targetConn.type) {
+                        let eWorld = getConnectorWorldPos(e, c);
+                        if (Math.hypot(eWorld.x - targetWorld.x, eWorld.y - targetWorld.y) < 2.0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function categorizeConnectors(connectors, width) {
+            let cat = []; let yGroups = [];
+            connectors.forEach(c => {
+                let added = false;
+                for (let g of yGroups) { if (Math.abs(g.y - c.y) < 5) { g.list.push(c); added = true; break; } }
+                if (!added) yGroups.push({ y: c.y, list: [c] });
+            });
+            if (connectors.length === 3 && yGroups.length === 2) {
+                yGroups.forEach(g => {
+                    if (g.list.length === 2) g.list.forEach(c => cat.push({ ...c, type: 'leg' })); else g.list.forEach(c => cat.push({ ...c, type: 'flange' }));
+                });
+            } else {
+                connectors.forEach(c => {
+                    const isFlange = (c.x < width * 0.08) || (c.x > width * 0.92);
+                    cat.push({ ...c, type: isFlange ? 'flange' : 'leg' });
+                });
+            }
+            return cat;
+        }
+
+        function getElementWeightProfile(el) {
+            let key = getElementKey(el);
+            if (!key || !moduleSettings[key]) return null;
+            let set = moduleSettings[key];
+            let b = getElementWorldBounds(el);
+
+            let weight = 0;
+            if (set.weightMode === 'per_m') {
+                let lengthM = set.length || (b.width / SCALE_GLOBAL / 1000);
+                weight = set.weightVal * lengthM;
+            } else {
+                weight = set.weightVal;
+            }
+
+            let cgX = b.minX + b.width / 2;
+            let leftWeight = weight / 2;
+            let rightWeight = weight / 2;
+
+            if (key === 'antriebstation.svg') {
+                let flanges = getFlangeConnectors(el);
+                let flangeLeft = flanges.left !== null;
+                let flangeRight = flanges.right !== null;
+                if (flangeLeft && !flangeRight) {
+                    cgX = b.minX + b.width * (2 / 3);
+                    leftWeight = weight * (1 / 3);
+                    rightWeight = weight * (2 / 3);
+                } else if (flangeRight && !flangeLeft) {
+                    cgX = b.minX + b.width * (1 / 3);
+                    leftWeight = weight * (2 / 3);
+                    rightWeight = weight * (1 / 3);
+                }
+            }
+            return { weight, cgX, minX: b.minX, maxX: b.maxX, leftWeight, rightWeight, width: b.width };
+        }
+
+        function getWeightInInterval(profile, L, R) {
+            let mid = profile.minX + profile.width / 2;
+            function overlap(a_min, a_max, b_min, b_max) {
+                return Math.max(0, Math.min(a_max, b_max) - Math.max(a_min, b_min));
+            }
+            let w = 0;
+            let overLeft = overlap(profile.minX, mid, L, R);
+            if (overLeft > 0) w += (overLeft / (profile.width / 2)) * profile.leftWeight;
+            let overRight = overlap(mid, profile.maxX, L, R);
+            if (overRight > 0) w += (overRight / (profile.width / 2)) * profile.rightWeight;
+            return w;
+        }
 
         // ==========================================
         // MODULE 5: ASSET MANAGER
@@ -1362,10 +1400,10 @@ function getWeightInInterval(profile, L, R) {
 
         async function addModule(type, filename) {
             if (filename === 'antriebstation.svg' && elements.some(e => e.filename === 'antriebstation.svg')) {
-                alert("Es kann nur eine Antriebsstation pro Anlage geben!"); return;
+                showNotification("Es kann nur eine Antriebsstation pro Anlage geben!"); return;
             }
             if (filename === 'Spannstation.svg' && elements.some(e => e.filename === 'Spannstation.svg')) {
-                alert("Es kann nur eine Spannstation pro Anlage geben!"); return;
+                showNotification("Es kann nur eine Spannstation pro Anlage geben!"); return;
             }
 
             const svgData = await loadSVG(filename); if (!svgData) return;
@@ -1511,7 +1549,7 @@ function getWeightInInterval(profile, L, R) {
             recalculateChainAlignment(base); updateStats(); draw();
         }
 
-        async function replaceSelected() {
+async function replaceSelected() {
             if (selectedElements.length !== 1 || selectedElements[0].type !== 'band') return;
             const target = selectedElements[0];
             const targetFile = target.filename.includes('2480') ? '3720.svg' : '2480.svg';
@@ -1561,6 +1599,7 @@ function getWeightInInterval(profile, L, R) {
             });
             updateActionMenu(); draw();
         }
+
         function deleteSelected() {
             if (selectedElements.length > 0) {
                 elements = elements.filter(e => !selectedElements.includes(e));
@@ -1570,15 +1609,13 @@ function getWeightInInterval(profile, L, R) {
         }
         function clearCanvas() { elements = []; selectedElements = []; dragGroup = []; draggedElement = null; updateActionMenu(); updateStats(); draw(); }
 
-
         // ==========================================
         // MODULE 7: INPUT CONTROLS (MOUSE & MENU)
         // ==========================================
         function getElementAtPosition(pos) {
             for (let i = elements.length - 1; i >= 0; i--) {
                 const el = elements[i];
-                // World -> Local Transformation: Die invertierten Winkel werden OHNE reverse() übergeben.
-                let invOps = getTransformOps(el).map(op => ({ ...op, angle: -op.angle }));
+                let invOps = [...getTransformOps(el)].reverse().map(op => ({ ...op, angle: -op.angle }));
                 let testPt = transformPoint(pos, invOps);
 
                 if (el.type === 'band' || el.type === 'end_unit') {
@@ -1830,31 +1867,28 @@ function getWeightInInterval(profile, L, R) {
         // ==========================================
         // MODULE 8: RENDER ENGINE
         // ==========================================
-// [BREADCRUMB: V21 - FIX ROTATION & PFEIL-TEXT AUSRICHTUNG]
-function getLegBottomWorldCenter(leg) {
-    const s = leg.scaleFactor;
-    const pl = leg.parts.platte; const te = leg.parts.teleskop;
-    const stW = leg.parts.stuetze.width * s; const teW = te.width * s;
-    const extH = (leg.extension + 250) * s;
-    const teX = leg.x + (stW / 2) - (teW / 2); const teY = leg.y + (leg.parts.stuetze.height * 0.1) * s + extH;
+        function getLegBottomWorldCenter(leg) {
+            const s = leg.scaleFactor;
+            const pl = leg.parts.platte; const te = leg.parts.teleskop;
+            const stW = leg.parts.stuetze.width * s; const teW = te.width * s;
+            const extH = (leg.extension + 250) * s;
+            const teX = leg.x + (stW / 2) - (teW / 2); const teY = leg.y + (leg.parts.stuetze.height * 0.1) * s + extH;
 
-    let teConnX = teW / 2, teConnY = te.height * s;
-    if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
+            let teConnX = teW / 2, teConnY = te.height * s;
+            if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
 
-    let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
-    let bottomConn = (pl.connectors && pl.connectors.find(c => c.type === 'bottom_connector')) || { x: pl.width / 2, y: pl.height };
+            let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
+            let bottomConn = (pl.connectors && pl.connectors.find(c => c.type === 'bottom_connector')) || { x: pl.width / 2, y: pl.height };
 
-    const jointLocal = { x: teX + teConnX, y: teY + teConnY };
-    
-    // WICHTIG: Die reverse() Funktion garantiert, dass die Matrix-Transformation 
-    // für die globalen Koordinaten akkurat berechnet wird.
-    const jointWorld = leg.parent ? transformPoint(jointLocal, [...getTransformOps(leg.parent)].reverse()) : jointLocal;
+            const jointLocal = { x: teX + teConnX, y: teY + teConnY };
+            const jointWorld = leg.parent ? transformPoint(jointLocal, [...getTransformOps(leg.parent)].reverse()) : jointLocal;
 
-    let dx = (bottomConn.x - topConn.x) * s;
-    let dy = (bottomConn.y - topConn.y) * s;
+            // Stütze hängt lotrecht, nur den absoluten vertikalen Abstand zwischen den Konnektoren hinzurechnen.
+            let dx = 0;
+            let dy = (bottomConn.y - topConn.y) * s;
 
-    return { x: jointWorld.x + dx, y: jointWorld.y + dy };
-}
+            return { x: jointWorld.x + dx, y: jointWorld.y + dy };
+        }
 
         function renderTributaryAreas() {
             const toggle = document.getElementById('toggle-einzugsflaechen');
@@ -2009,135 +2043,134 @@ function getLegBottomWorldCenter(leg) {
         }
 
         function renderReactionForces() {
-    const toggle = document.getElementById('toggle-forces'); if (!toggle || !toggle.checked) return;
-    let allLegData = [];
+            const toggle = document.getElementById('toggle-forces'); if (!toggle || !toggle.checked) return;
+            let allLegData = [];
 
-    getSystems().forEach(group => {
-        let totalWeight = 0; let momentSum = 0;
-        let minX = Infinity, maxX = -Infinity;
-        group.forEach(el => {
-            let p = getElementWeightProfile(el);
-            if (p) {
-                totalWeight += p.weight;
-                momentSum += p.weight * p.cgX;
-                if (p.minX < minX) minX = p.minX;
-                if (p.maxX > maxX) maxX = p.maxX;
-            }
-        });
-
-        let legs = group.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
-        let legItems = legs.map((leg, idx) => {
-            let arrowTipWorld = getLegBottomWorldCenter(leg);
-            
-            let baseH = 0;
-            if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
-            else if (leg.baseType === 'heb120' && leg.baseData) {
-                baseH = leg.baseData.height * SCALE_GLOBAL;
-                if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
-            }
-            return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y, baseH: baseH, localIdx: 0 };
-        }).sort((a, b) => a.x - b.x);
-
-        legItems.forEach((item, idx) => item.localIdx = idx + 1);
-
-        let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-        let F_tot_kN = totalWeight * 9.81 / 1000;
-        let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
-
-        if (legItems.length === 1) {
-            legItems[0].forceKN = F_tot_kN;
-            allLegData.push(legItems[0]);
-        } else if (legItems.length === 2) {
-            let x1 = legItems[0].x; let x2 = legItems[1].x;
-            if (Math.abs(x2 - x1) < 1) {
-                legItems[0].forceKN = F_tot_kN / 2;
-                legItems[1].forceKN = F_tot_kN / 2;
-            } else {
-                let F2 = F_tot_kN * (X_cg - x1) / (x2 - x1);
-                let F1 = F_tot_kN - F2;
-                legItems[0].forceKN = F1;
-                legItems[1].forceKN = F2;
-            }
-            allLegData.push(legItems[0], legItems[1]);
-        } else {
-            legItems.forEach((item, i) => {
-                let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
-                let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
-
-                let f_teil_kg = 0;
+            getSystems().forEach(group => {
+                let totalWeight = 0; let momentSum = 0;
+                let minX = Infinity, maxX = -Infinity;
                 group.forEach(el => {
                     let p = getElementWeightProfile(el);
-                    if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound);
+                    if (p) {
+                        totalWeight += p.weight;
+                        momentSum += p.weight * p.cgX;
+                        if (p.minX < minX) minX = p.minX;
+                        if (p.maxX > maxX) maxX = p.maxX;
+                    }
                 });
-                item.forceKN = f_teil_kg * 9.81 / 1000;
-                allLegData.push(item);
+
+                let legs = group.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+                let legItems = legs.map((leg, idx) => {
+                    let arrowTipWorld = getLegBottomWorldCenter(leg);
+
+                    let baseH = 0;
+                    if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
+                    else if (leg.baseType === 'heb120' && leg.baseData) {
+                        baseH = leg.baseData.height * SCALE_GLOBAL;
+                        if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+                    }
+
+                    return { leg, x: arrowTipWorld.x, y: arrowTipWorld.y, baseH: baseH, localIdx: 0 };
+                }).sort((a, b) => a.x - b.x);
+
+                // Lokalen Index nach x-Sortierung zuweisen (F1, F2...)
+                legItems.forEach((item, idx) => item.localIdx = idx + 1);
+
+                let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+                let F_tot_kN = totalWeight * 9.81 / 1000;
+                let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+
+                if (legItems.length === 1) {
+                    legItems[0].forceKN = F_tot_kN;
+                    allLegData.push(legItems[0]);
+                } else if (legItems.length === 2) {
+                    let x1 = legItems[0].x; let x2 = legItems[1].x;
+                    if (Math.abs(x2 - x1) < 1) {
+                        legItems[0].forceKN = F_tot_kN / 2;
+                        legItems[1].forceKN = F_tot_kN / 2;
+                    } else {
+                        let F2 = F_tot_kN * (X_cg - x1) / (x2 - x1);
+                        let F1 = F_tot_kN - F2;
+                        legItems[0].forceKN = F1;
+                        legItems[1].forceKN = F2;
+                    }
+                    allLegData.push(legItems[0], legItems[1]);
+                } else {
+                    legItems.forEach((item, i) => {
+                        let leftBound = i === 0 ? minX : (legItems[i - 1].x + item.x) / 2;
+                        let rightBound = i === legItems.length - 1 ? maxX : (item.x + legItems[i + 1].x) / 2;
+
+                        let f_teil_kg = 0;
+                        group.forEach(el => {
+                            let p = getElementWeightProfile(el);
+                            if (p) f_teil_kg += getWeightInInterval(p, leftBound, rightBound);
+                        });
+                        item.forceKN = f_teil_kg * 9.81 / 1000;
+                        allLegData.push(item);
+                    });
+                }
             });
+
+            if (allLegData.length === 0) return;
+            let maxGlobalF = 0;
+            let maxWorldY = -Infinity;
+            allLegData.forEach(item => {
+                if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
+                let yWithBase = item.y + item.baseH;
+                if (yWithBase > maxWorldY) maxWorldY = yWithBase;
+            });
+            if (maxGlobalF === 0) maxGlobalF = 1;
+
+            // Einheitliche Y-Zielkoordinate für die Enden der Pfeile (unterhalb der Maßketten)
+            let gap = 200 * SCALE_GLOBAL / scale;
+            let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+            let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
+
+            ctx.save();
+            ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1.5 / scale;
+
+            allLegData.forEach(item => {
+                let isUplift = item.forceKN < 0;
+                let absF = Math.abs(item.forceKN);
+                let ratio = absF / maxGlobalF;
+
+                let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
+                let lx = item.x;
+                let ly = item.y + item.baseH; // Kraft wirkt ganz unten am Boden/Sockel
+
+                ctx.strokeStyle = color; ctx.fillStyle = color;
+
+                let ahW = 8 / scale, ahH = 16 / scale;
+
+                // Gestrichelte Pfeillinie bis zur Maßkette verlängert
+                ctx.beginPath();
+                ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
+                ctx.moveTo(lx, arrowTailY);
+                ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Pfeilspitze (gefüllt)
+                ctx.beginPath();
+                if (isUplift) {
+                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
+                }
+
+                // Beschriftung 90° gedreht, sodass "kN" direkt unter dimY2 sitzt
+                let stateText = isUplift ? ' (ZUG)' : '';
+                let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
+
+                ctx.save();
+                ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'right'; // Damit endet der String "kN" direkt am Nullpunkt der Verschiebung
+                ctx.fillText(forceLabel, 0, 0);
+                ctx.restore();
+            });
+            ctx.restore();
         }
-    });
-
-    if (allLegData.length === 0) return;
-    
-    let maxGlobalF = 0;
-    let maxWorldY = -Infinity;
-    allLegData.forEach(item => { 
-        if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN); 
-        let yWithBase = item.y + item.baseH;
-        if (yWithBase > maxWorldY) maxWorldY = yWithBase;
-    });
-    if (maxGlobalF === 0) maxGlobalF = 1;
-    
-    // Ermittlung der Basis-Linien für die Verlängerung
-    let gap = 200 * SCALE_GLOBAL / scale;
-    let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
-    let arrowTailY = dimY2 + 200 * SCALE_GLOBAL / scale; // Zieht die Linie weit genug nach unten
-
-    ctx.save();
-    ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; 
-    ctx.textAlign = 'center'; 
-    ctx.textBaseline = 'middle'; 
-    ctx.lineWidth = 1.5 / scale;
-
-    allLegData.forEach(item => {
-        let isUplift = item.forceKN < 0;
-        let absF = Math.abs(item.forceKN);
-        let ratio = absF / maxGlobalF;
-
-        let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
-        let lx = item.x; 
-        let ly = item.y + item.baseH; // Kraft-Angriffspunkt
-
-        ctx.strokeStyle = color; ctx.fillStyle = color;
-        let ahW = 8 / scale, ahH = 16 / scale;
-
-        // Gestrichelte Linie bis zum unteren Ende
-        ctx.beginPath();
-        ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
-        ctx.moveTo(lx, isUplift ? ly - ahH : ly + ahH);
-        ctx.lineTo(lx, arrowTailY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Pfeilspitze
-        ctx.beginPath();
-        if (isUplift) {
-            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
-        } else {
-            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
-        }
-
-        let stateText = isUplift ? ' (ZUG)' : '';
-        let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
-
-        ctx.save();
-        // Positionierung des Textes: x nach links versetzt, y exakt unterhalb der dimY2 Linie
-        ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
-        ctx.rotate(-Math.PI / 2); // Text um 90° gegen den Uhrzeigersinn
-        ctx.textAlign = 'right';  // Sorgt dafür, dass das "kN" direkt am oberen Nullpunkt aufhört
-        ctx.fillText(forceLabel, 0, 0);
-        ctx.restore();
-    });
-    ctx.restore();
-}
 
         function draw() {
             const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
@@ -2177,7 +2210,9 @@ function getLegBottomWorldCenter(leg) {
                 const origRad = (4.0) * Math.PI / 180; const newRad = (el.knickAngle / 2) * Math.PI / 180;
                 ctx.save(); ctx.translate(el.x, el.y);
                 ctx.strokeStyle = el.color || '#0f172a';
+
                 ctx.lineWidth = 0.08 / scale;
+
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 if (el.bodyData.paths) {
                     el.bodyData.paths.forEach(path => {
@@ -2218,7 +2253,9 @@ function getLegBottomWorldCenter(leg) {
                 const extH = (el.extension + 250) * s;
                 ctx.save(); let ops = getTransformOps(el.parent || el);
                 for (let op of ops) { ctx.translate(op.cx, op.cy); ctx.rotate((-op.angle * Math.PI) / 180); ctx.translate(-op.cx, -op.cy); }
-                const teX = el.x + (stW / 2) - (teW / 2); const teY = el.y + (stH * 0.1) * s + extH;
+
+                // BREADCRUMB: V23 - Die doppelte Skalierung ((stH * 0.1) * s) wurde hier entfernt! Nur (st.height * 0.1) * s ist korrekt.
+                const teX = el.x + (stW / 2) - (teW / 2); const teY = el.y + (st.height * 0.1) * s + extH;
                 ctx.drawImage(te.img, teX, teY, teW, teH); ctx.drawImage(st.img, el.x, el.y, stW, stH);
                 let teConnX = teW / 2, teConnY = teH;
                 if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
