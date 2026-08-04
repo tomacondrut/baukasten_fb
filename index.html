@@ -531,8 +531,7 @@
                 display: block;
                 position: fixed;
                 bottom: 10mm;
-                left: 50%;
-                transform: translateX(-50%);
+                right: 130mm; /* Verankert es exakt 10mm links neben dem Schriftfeld */
                 width: auto;
                 min-width: 70mm;
                 border: 0.35mm solid #000;
@@ -1822,86 +1821,109 @@ async function updateLegBase(val) {
         lastMouseWorld = getCanvasCoords(e); draw();
     });
 
-    canvas.addEventListener('mousemove', (e) => {
-        if (draggedElement && dragGroup.length > 0) {
-            let currentMouseWorld = getCanvasCoords(e);
-            let worldDx = currentMouseWorld.x - lastMouseWorld.x; let worldDy = currentMouseWorld.y - lastMouseWorld.y;
-            lastMouseWorld = currentMouseWorld;
+canvas.addEventListener('mousemove', (e) => {
+    if (draggedElement && dragGroup.length > 0) {
+        let currentMouseWorld = getCanvasCoords(e);
+        let worldDx = currentMouseWorld.x - lastMouseWorld.x;
+        let worldDy = currentMouseWorld.y - lastMouseWorld.y;
 
-            if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
-                draggedElement.ignoreSnapUntilMove = false; draggedElement.isDetached = false;
-            }
+        // 1. NEU: Stütze beim Loslösen direkt zur Maus springen lassen!
+        if (draggedElement.type === 'assembly_leg' && draggedElement.parent) {
+            draggedElement.parent = null;
+            const s = draggedElement.scaleFactor;
+            // Wir zentrieren den oberen Connector der Stütze exakt auf die letzte Mausposition
+            let shiftX = lastMouseWorld.x - (draggedElement.x + draggedElement.connector.x * s);
+            let shiftY = lastMouseWorld.y - (draggedElement.y + draggedElement.connector.y * s);
+            dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+        }
 
-            if (draggedElement.type === 'assembly_leg' && draggedElement.parent) {
-                const wPos = getLegConnectorWorldPos(draggedElement);
-                draggedElement.parent = null;
-                draggedElement.x = wPos.x - (draggedElement.connector.x * draggedElement.scaleFactor); draggedElement.y = wPos.y - (draggedElement.connector.y * draggedElement.scaleFactor);
-            }
+        lastMouseWorld = currentMouseWorld;
 
-            const angle = getChainAngle(draggedElement); let localDx = worldDx, localDy = worldDy;
-            if (angle !== 0 && !draggedElement.parent) {
-                const rad = (angle * Math.PI) / 180;
-                localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad); localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
-            }
-            dragGroup.forEach(el => { el.x += localDx; el.y += localDy; });
+        if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
+            draggedElement.ignoreSnapUntilMove = false; draggedElement.isDetached = false;
+        }
 
-            const SNAP = 25 / scale; let snappedParent = null;
+        const angle = getChainAngle(draggedElement); let localDx = worldDx, localDy = worldDy;
+        if (angle !== 0 && !draggedElement.parent) {
+            const rad = (angle * Math.PI) / 180;
+            localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad); localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
+        }
+        dragGroup.forEach(el => { el.x += localDx; el.y += localDy; });
 
-            if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.connectors && draggedElement.type !== 'assembly_leg') {
-                const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
-                let bestSnap = null, minSnapDist = SNAP;
+        const SNAP = 25 / scale; let snappedParent = null;
 
-                myAllFlanges.forEach(myConn => {
-                    let myIsLeft = isLeftConnector(draggedElement, myConn); let myWorld = getConnectorWorldPos(draggedElement, myConn);
-                    elements.forEach(other => {
-                        if (dragGroup.includes(other) || other.isDetached) return;
-                        if (draggedElement.type === 'knick' && other.type === 'end_unit') return;
-                        if (draggedElement.type === 'end_unit' && other.type === 'knick') return;
+        if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.connectors && draggedElement.type !== 'assembly_leg') {
+            const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
+            let bestSnap = null, minSnapDist = SNAP;
 
-                        const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
-                        otherAllFlanges.forEach(otherConn => {
-                            if (isConnectorOccupied(other, otherConn)) return;
-                            let otherIsLeft = isLeftConnector(other, otherConn);
-                            if (myIsLeft !== otherIsLeft) {
-                                let otherPos = getConnectorWorldPos(other, otherConn);
-                                let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
-                                if (dist < minSnapDist) { minSnapDist = dist; bestSnap = { other, myConn, otherConn }; }
-                            }
-                        });
+            myAllFlanges.forEach(myConn => {
+                let myIsLeft = isLeftConnector(draggedElement, myConn); let myWorld = getConnectorWorldPos(draggedElement, myConn);
+                elements.forEach(other => {
+                    if (dragGroup.includes(other) || other.isDetached) return;
+                    if (draggedElement.type === 'knick' && other.type === 'end_unit') return;
+                    if (draggedElement.type === 'end_unit' && other.type === 'knick') return;
+
+                    const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                    otherAllFlanges.forEach(otherConn => {
+                        if (isConnectorOccupied(other, otherConn)) return;
+                        let otherIsLeft = isLeftConnector(other, otherConn);
+                        if (myIsLeft !== otherIsLeft) {
+                            let otherPos = getConnectorWorldPos(other, otherConn);
+                            let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
+                            if (dist < minSnapDist) { minSnapDist = dist; bestSnap = { other, myConn, otherConn }; }
+                        }
                     });
                 });
-                if (bestSnap) {
-                    let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn); let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
-                    let idealX = bestSnap.other.x + otherOff.x - myOff.x; let idealY = bestSnap.other.y + otherOff.y - myOff.y;
-                    let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
-                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
-                    snappedParent = bestSnap.other;
+            });
+            if (bestSnap) {
+                let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn); let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
+                let idealX = bestSnap.other.x + otherOff.x - myOff.x; let idealY = bestSnap.other.y + otherOff.y - myOff.y;
+                let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
+                dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                snappedParent = bestSnap.other;
+            }
+        }
+        else if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.type === 'assembly_leg') {
+            const legConnWorld = getLegConnectorWorldPos(draggedElement);
+
+            // 2. NEU: Kürzeste Distanz suchen, um wildes Hüpfen zu verhindern!
+            let bestLegSnap = null;
+            let minLegSnapDist = SNAP;
+
+            elements.forEach(other => {
+                if (!dragGroup.includes(other) && other.connectors) {
+                    const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
+                    otherLegConnectors.forEach(c => {
+                        if (isConnectorOccupied(other, c)) return;
+                        const bandConnWorld = getConnectorWorldPos(other, c);
+                        let dist = Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y);
+
+                        // Nur einrasten, wenn dieser Punkt näher ist als alle bisher gefundenen
+                        if (dist < minLegSnapDist) {
+                            minLegSnapDist = dist;
+                            bestLegSnap = { other, c };
+                        }
+                    });
                 }
+            });
+
+            if (bestLegSnap) {
+                snappedParent = bestLegSnap.other;
+                let targetOff = getLocalFlangeOffset(bestLegSnap.other, bestLegSnap.c);
+                let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
+                let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
+                let shiftX = idealX - draggedElement.x;
+                let shiftY = idealY - draggedElement.y;
+                dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
             }
-            else if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.type === 'assembly_leg') {
-                const legConnWorld = getLegConnectorWorldPos(draggedElement);
-                elements.forEach(other => {
-                    if (!dragGroup.includes(other) && other.connectors) {
-                        const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
-                        otherLegConnectors.forEach(c => {
-                            if (isConnectorOccupied(other, c)) return;
-                            const bandConnWorld = getConnectorWorldPos(other, c);
-                            if (Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y) < SNAP) {
-                                snappedParent = other;
-                                let targetOff = getLocalFlangeOffset(other, c);
-                                let idealX = other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
-                                let idealY = other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
-                                let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
-                                dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
-                            }
-                        });
-                    }
-                });
-            }
-            if (snappedParent) draggedElement.parent = snappedParent;
-            updateActionMenu(); draw();
-        } else if (isDraggingCanvas) { panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; draw(); }
-    });
+        }
+
+        if (snappedParent) draggedElement.parent = snappedParent;
+        updateActionMenu(); draw();
+    } else if (isDraggingCanvas) {
+        panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; draw();
+    }
+});
 
     canvas.addEventListener('mouseup', () => { draggedElement = null; dragGroup = []; isDraggingCanvas = false; updateActionMenu(); draw(); });
     canvas.addEventListener('wheel', (e) => {
