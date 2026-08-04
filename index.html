@@ -530,9 +530,11 @@
             #print-report {
                 display: block;
                 position: fixed;
-                top: 15mm;
-                right: 15mm;
-                width: 70mm;
+                bottom: 10mm;
+                left: 50%;
+                transform: translateX(-50%);
+                width: auto;
+                min-width: 70mm;
                 border: 0.35mm solid #000;
                 background: #fff;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -773,6 +775,9 @@
             <div id="settings-spring-controls" style="display:none; margin-top: 15px; border-top: 1px solid #334155; padding-top: 15px;">
                 <label>Federsteifigkeit Stütze (kN/m)</label>
                 <input type="number" id="settings-k-input" min="100" step="100" title="Beispiel: 10.000 kN/m = 10 kN pro mm Einsinken">
+
+                <label style="margin-top: 15px;">Start-Bezeichnung (z.B. S23 oder F1)</label>
+                <input type="text" id="settings-leg-name-input" placeholder="F1">
             </div>
 
             <label style="margin-top: 15px;">Farbe</label>
@@ -894,31 +899,57 @@ function openStatikInfoModal() {
     const container = document.getElementById('statik-info-content');
 
     let html = `<div style="margin-bottom: 20px;">
-            <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftlicher Simulationsaufbau</h4>
+            <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftliche Berechnungsgrundlagen</h4>
             <div class="info-text" style="margin-top: 10px; line-height: 1.6;">
-                Die statische Berechnung dieses Baukastens basiert auf der <b>Methode der finiten Elemente (Steifigkeitsverfahren)</b>. Eigengewichte werden als echte <b>Streckenlasten ($q$)</b> verarbeitet und nicht als künstliche Punktlasten.
+                Die statische Berechnung dieses Anlagen-Baukastens basiert auf der <b>Methode der finiten Elemente (Matrix-Verschiebungs-Methode / Steifigkeitsverfahren)</b>. 
+                Im Gegensatz zu klassischen Kraftgrößenverfahren, bei denen unendlich starre Auflager zu unrealistischen Zwangskräften ("Wippen-Effekt") führen können, modelliert dieser Solver die reale makroskopische Elastizität des gesamten Fördersystems.
             </div>
             
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Elementsteifigkeitsmatrix (Balken)</h5>
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Die Euler-Bernoulli-Balkentheorie</h5>
             <div class="info-text">
-                Das System wird an Modulgrenzen und Stützen in $n$ Bernoulli-Balkenelemente der Länge $L$ unterteilt. Die lokale Matrix $\mathbf{K_e}$ für Biegung definiert sich über den E-Modul und das Trägheitsmoment ($EI_y$):
+                Das Gesamtsystem wird an Stützen und Modulgrenzen in $n$ diskrete Balkenelemente der Länge $L$ diskretisiert. Aufgrund des hohen Schlankheitsgrades der Förderbänder werden Schubverzerrungen vernachlässigt (Bernoulli-Hypothese). 
+                Die Steifigkeit jedes Elements wird durch den E-Modul und das äquivalente Flächenträgheitsmoment ($EI_y$) definiert. Diese Parameter können durch detaillierte 3D-FEA-Simulationen an realen Profilen ermittelt und hier als idealisierter 1D-Ersatzquerschnitt eingepflegt werden. Die lokale Elementsteifigkeitsmatrix $\\mathbf{K_e}$ lautet:
             </div>
-            <div class="formula-box">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
+            <div class="formula-box" style="overflow-x: auto;">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">2. Streckenlasten & Elastische Auflager</h5>
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">2. Kinematische Transformation von Streckenlasten</h5>
             <div class="info-text">
-                Das Gewicht der Bänder ($q$ in kN/m) wird über äquivalente Knotenlasten (Festspannmomente $\\frac{qL^2}{12}$) in den globalen Lastvektor $\\mathbf{F}$ integriert. Gleichzeitig weisen die Teleskopstützen eine Federsteifigkeit $k_s$ auf, welche auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert wird (Winkler'sche Bettung).
+                Das Eigengewicht der Bänder wird physikalisch korrekt als kontinuierliche Streckenlast $q(x)$ in $\\text{kN/m}$ verarbeitet. Um diese in das diskrete Knotenmodell zu überführen, berechnet der Solver kinematisch äquivalente Knotenlasten (Festspannmomente). Diese werden als Vertikalkräfte $F_z = \\frac{qL}{2}$ und Biegemomente $M_y = \\pm \\frac{qL^2}{12}$ dem globalen Lastvektor $\\mathbf{F}$ aufgeprägt.
+            </div>
+
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Elastische Bettung (Winkler-Modell)</h5>
+            <div class="info-text">
+                Teleskopstützen, Profilverschraubungen und Betonsockel geben unter Last mikroskopisch nach. Diese axiale Nachgiebigkeit wird durch eine lineare Federsteifigkeit $k_s$ in $\\text{kN/m}$ abgebildet. 
+                Mathematisch werden diese Werte auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert. Dies verhindert Matrix-Singularitäten und baut statische Verspannungsspitzen bei eng stehenden Stützen realistisch ab – das System kann sich in seinen Auflagern "setzen".
             </div>
             
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Lösung & Schnittgrößen</h5>
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">4. Systemlösung & Differentialgleichung der Biegelinie</h5>
             <div class="info-text">
-                Nach Lösung des Gleichungssystems $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$ ergeben sich die Stützkräfte $R_i = -k_{s,i} \\cdot u_{z,i}$. Die Querkraft $Q(x)$ und das Biegemoment $M(x)$ werden anschließend durch exakte Integralbildung der Streckenlasten und Stützkräfte über die gesamte Länge berechnet (ergibt perfekte Parabeln).
+                Durch Assemblierung aller Matrizen entsteht das globale lineare Gleichungssystem $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$, welches per numerischer Gauß-Elimination nach dem Verschiebungsvektor $\\mathbf{u}$ aufgelöst wird.
+                Die tatsächlichen Auflagerkräfte $R_i$ ergeben sich aus dem Hooke'schen Gesetz ($R_i = -k_{s,i} \\cdot u_{z,i}$).
+                Der stetige Verlauf der Schnittgrößen im Diagramm resultiert abschließend aus der analytischen Integration der Streckenlasten gemäß der Differentialgleichung der Biegelinie:
+            </div>
+            <div class="formula-box">$$ \\frac{dQ(x)}{dx} = -q(x) \\quad \\Rightarrow \\quad \\frac{dM_y(x)}{dx} = Q(x) $$</div>
+
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">5. Einfluss von Bandneigungen (Horizontale Projektion)</h5>
+            <div class="info-text">
+                Räumliche Neigungswinkel (z. B. durch Knick-Module) werden über eine <b>horizontale Projektion</b> in das 1D-Stabmodell überführt. Die effektive Systemlänge eines schrägen Bandes verkürzt sich dabei geometrisch:
+            </div>
+            <div class="formula-box">$$ L_{\\text{proj}} = L_{\\text{real}} \\cdot \\cos(\\alpha) $$</div>
+            <div class="info-text">
+                Da Eigengewichtskräfte stets absolut vertikal wirken, berechnet die Projektionsmethode die resultierenden Biegemomente $M_y$ und vertikalen Auflagerkräfte $R_z$ über die verkürzten horizontalen Hebelarme physikalisch exakt. Das Modell fungiert dabei als reiner Biegebalken; parallel zur Bandachse wirkende Hangabtriebskräfte (Normalkräfte $N(x)$) werden als für die vertikale Stützenbemessung vernachlässigbar klein abgebildet (gültig für typische Förderbandneigungen $\\alpha \\le 20^\\circ$).
             </div>
         </div>`;
 
     container.innerHTML = html;
     if (typeof renderMathInElement === 'function') {
-        renderMathInElement(container, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false });
+        renderMathInElement(container, {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+        });
     }
     document.getElementById('statik-info-modal').style.display = 'block';
 }
@@ -935,6 +966,7 @@ function openSettings(key) {
         document.getElementById('settings-physics-controls').style.display = 'none';
         document.getElementById('settings-spring-controls').style.display = 'block';
         document.getElementById('settings-k-input').value = set.spring_k;
+        document.getElementById('settings-leg-name-input').value = set.startName || 'F1'; // <-- NEU
     } else {
         document.getElementById('settings-physics-controls').style.display = 'block';
         document.getElementById('settings-spring-controls').style.display = 'none';
@@ -956,6 +988,7 @@ async function applySettings() {
 
     if (currentSettingKey === 'assembly_leg') {
         set.spring_k = parseFloat(document.getElementById('settings-k-input').value) || 10000;
+        set.startName = document.getElementById('settings-leg-name-input').value.trim() || 'F1'; // <-- NEU
     } else {
         set.e_mod = parseFloat(document.getElementById('settings-e-input').value) || 210000;
         set.i_y = parseFloat(document.getElementById('settings-i-input').value) || 3690;
@@ -2092,6 +2125,10 @@ function gaussSolve(A, b) {
     return x;
 }
 
+// [BREADCRUMB: V24 - DYNAMIC LEG NAMING & FEM CONTINUOUS LOADS]
+// FEHLER: Stützen hatten harte, statische IDs (F1, F2), was bei der Integration in größere Inventor-Anlagenmodelle (wo Bezeichnungen wie S23 starten) unpraktisch war.
+// LÖSUNG: Regex-Parser in calculateSystemStatics eingefügt, der Präfix und Startnummer (z.B. "S" und "23") trennt und für alle gefundenen Stützen hochzählt. Zudem wurde der Solver auf Streckenlasten umgerüstet.
+
 function calculateSystemStatics(group) {
     let minX = Infinity, maxX = -Infinity;
     let totalWeight = 0; let momentSum = 0;
@@ -2141,7 +2178,26 @@ function calculateSystemStatics(group) {
         return { leg, x: tip.x, y: tip.y, baseH, x_m: tip.x / SCALE_GLOBAL / 1000 };
     }).sort((a, b) => a.x - b.x);
 
-    legItems.forEach((item, idx) => item.localIdx = idx + 1);
+    // --- HIER PASSIERT DAS INTELLIGENTE PARSEN DER ZWILLINGS-NAMEN (z.B. S23) ---
+    let startName = moduleSettings['assembly_leg']?.startName || "S1";
+    let prefix = "S", startNum = 1;
+    let match = startName.match(/^([^0-9]*)(\d+)$/);
+    if (match) {
+        prefix = match[1];
+        startNum = parseInt(match[2], 10);
+    } else {
+        prefix = startName;
+        startNum = 1;
+    }
+
+    legItems.forEach((item, idx) => {
+        item.localIdx = idx + 1;
+        // Pro Stützbock (2D) gibt es zwei physische Stützen (3D)
+        let num1 = startNum + (idx * 2);
+        let num2 = num1 + 1;
+        item.label = `${prefix}${num1} & ${prefix}${num2}`; // Generiert z.B. "S23 & S24"
+    });
+    // --- ENDE BENENNUNG ---
 
     let F_tot_kN = totalWeight * 9.81 / 1000;
     let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
@@ -2318,32 +2374,59 @@ function renderSchnittgroessen() {
         }
 
         function drawGrid(baseY, niceMax, title, color) {
+            // Zartere vertikale Linien für die Stützen inkl. Beschriftung
             legItems.forEach(leg => {
                 ctx.beginPath();
                 ctx.moveTo(leg.x, baseY - diagramHeight);
                 ctx.lineTo(leg.x, baseY + diagramHeight);
                 ctx.strokeStyle = window.isPrintingDiagram ? '#d1d5db' : '#cbd5e1';
-                ctx.lineWidth = 1.5 / scale;
-                ctx.setLineDash([15 / scale, 15 / scale]);
+                ctx.lineWidth = 0.5 / scale;
+                ctx.setLineDash([5 / scale, 5 / scale]);
                 ctx.stroke(); ctx.setLineDash([]);
+
+                // NEU: Beschriftung des Stützenpaars (z.B. S1 & S2) am oberen Rand
+                ctx.fillStyle = '#94a3b8';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.font = `${30 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+                let labelText = leg.leg.isUplift ? `${leg.label} (ZUG)` : leg.label;
+                ctx.fillText(labelText, leg.x, baseY - diagramHeight - (10 / scale));
             });
 
-            let steps = [-1, -0.5, 0, 0.5, 1];
             ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
             ctx.font = `${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
 
-            steps.forEach(mult => {
+            // 10 Unterteilungen pro Hälfte (ergibt ein 5er oder 10er Raster, abhängig vom Maximalwert)
+            let numSub = 10;
+            for (let i = -numSub; i <= numSub; i++) {
+                let mult = i / numSub;
                 let y = baseY - (mult * diagramHeight);
                 let val = mult * niceMax;
+                let isMain = (i % 5 === 0); // Hauptlinien bei 0%, 50%, 100%
+
                 ctx.beginPath(); ctx.moveTo(startX_px - 20 / scale, y); ctx.lineTo(endX_px + 20 / scale, y);
-                ctx.strokeStyle = mult === 0 ? '#475569' : '#e2e8f0';
-                ctx.lineWidth = mult === 0 ? 2.0 / scale : 1.0 / scale;
-                ctx.stroke();
-                if (mult !== 0) {
-                    ctx.fillStyle = '#64748b';
-                    ctx.fillText(`${val > 0 ? '+' : ''}${val.toFixed(1)}`, startX_px - 40 / scale, y);
+
+                if (i === 0) {
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 1.2 / scale;
+                    ctx.setLineDash([]);
+                } else if (isMain) {
+                    ctx.strokeStyle = window.isPrintingDiagram ? '#9ca3af' : '#94a3b8';
+                    ctx.lineWidth = 0.8 / scale;
+                    ctx.setLineDash([]);
+                } else {
+                    ctx.strokeStyle = window.isPrintingDiagram ? '#e5e7eb' : '#e2e8f0';
+                    ctx.lineWidth = 0.4 / scale;
+                    ctx.setLineDash([4 / scale, 4 / scale]);
                 }
-            });
+                ctx.stroke(); ctx.setLineDash([]);
+
+                if (isMain && i !== 0) {
+                    ctx.fillStyle = '#64748b';
+                    let valStr = val % 1 === 0 ? val.toString() : val.toFixed(1);
+                    ctx.fillText(`${val > 0 ? '+' : ''}${valStr}`, startX_px - 40 / scale, y);
+                }
+            }
 
             ctx.fillStyle = color;
             ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
@@ -2351,15 +2434,16 @@ function renderSchnittgroessen() {
             ctx.fillText(title, startX_px, baseY - diagramHeight - 20 / scale);
         }
 
+        // Zeichnen der dünneren Graphen-Kurven
         drawGrid(diagramBaseY_Q, niceMaxQ, "Q(x) [kN]", "#3b82f6");
         ctx.beginPath(); ctx.moveTo(Q_data[0].x_px, diagramBaseY_Q);
         Q_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_Q - (pt.val / niceMaxQ) * diagramHeight));
-        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
+        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
 
         drawGrid(diagramBaseY_M, niceMaxM, "M(x) [kNm]", "#f59e0b");
         ctx.beginPath(); ctx.moveTo(M_data[0].x_px, diagramBaseY_M);
         M_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_M - (pt.val / niceMaxM) * diagramHeight));
-        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
     });
 
     if (totalMinX !== Infinity) {
@@ -2372,22 +2456,24 @@ function renderSchnittgroessen() {
     // ==========================================
     // MODULE 10: PRINT ENGINE
     // ==========================================
-    function updatePrintStaticsTable() {
-        let staticsTableHtml = '';
-        getSystems().forEach((group) => {
-            let statics = calculateSystemStatics(group);
-            if (statics && statics.legItems.length > 0) {
-                staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
-                statics.legItems.forEach(item => {
-                    let val = Math.abs(item.forceKN).toFixed(2);
-                    let state = item.forceKN < 0 ? ' (ZUG)' : '';
-                    staticsTableHtml += `F${item.localIdx} = ${val} kN${state}<br>`;
-                });
-                staticsTableHtml += `</div>`;
-            }
-        });
-        document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
-    }
+function updatePrintStaticsTable() {
+    let staticsTableHtml = '';
+    getSystems().forEach((group) => {
+        let statics = calculateSystemStatics(group);
+        if (statics && statics.legItems.length > 0) {
+            staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
+            statics.legItems.forEach(item => {
+                let valTotal = Math.abs(item.forceKN);
+                let valHalf = (valTotal / 2).toFixed(2);
+                let state = item.forceKN < 0 ? ' (ZUG)' : '';
+                // Ausgabe z.B.: S23 & S24 = 2 x 7.50 kN
+                staticsTableHtml += `${item.label} = 2 &times; ${valHalf} kN${state}<br>`;
+            });
+            staticsTableHtml += `</div>`;
+        }
+    });
+    document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+}
 
     function executePrint() {
         document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
@@ -2541,71 +2627,105 @@ function printDiagram() {
     // ==========================================
     // MODULE 11: MAIN DRAW LOOP
     // ==========================================
-    function renderReactionForces() {
-        const toggle = document.getElementById('toggle-forces');
-        if (!toggle || !toggle.checked) return;
+function renderReactionForces() {
+    const toggle = document.getElementById('toggle-forces');
+    if (!toggle || !toggle.checked) return;
 
-        let allLegData = [];
-        getSystems().forEach(group => {
-            let statics = calculateSystemStatics(group);
-            if (statics) allLegData.push(...statics.legItems);
-        });
+    let allLegData = [];
+    getSystems().forEach(group => {
+        let statics = calculateSystemStatics(group);
+        if (statics) allLegData.push(...statics.legItems);
+    });
 
-        if (allLegData.length === 0) return;
-        let maxGlobalF = 0;
-        let maxWorldY = -Infinity;
+    if (allLegData.length === 0) return;
+    let maxGlobalF = 0;
+    let maxWorldY = -Infinity;
 
-        allLegData.forEach(item => {
-            if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
-            let yWithBase = item.y + item.baseH;
-            if (yWithBase > maxWorldY) maxWorldY = yWithBase;
-        });
-        if (maxGlobalF === 0) maxGlobalF = 1;
+    allLegData.forEach(item => {
+        if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
+        let yWithBase = item.y + item.baseH;
+        if (yWithBase > maxWorldY) maxWorldY = yWithBase;
+    });
+    if (maxGlobalF === 0) maxGlobalF = 1;
 
-        let gap = 200 * SCALE_GLOBAL / scale;
-        let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
-        let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
+    let gap = 200 * SCALE_GLOBAL / scale;
+    let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+    // arrowTailY ist die untere Kante der vertikalen gestrichelten Linie
+    let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
 
+    ctx.save();
+    ctx.lineWidth = 1.5 / scale;
+
+    allLegData.forEach(item => {
+        let isUplift = item.forceKN < 0;
+        let absF = Math.abs(item.forceKN);
+        let ratio = absF / maxGlobalF;
+        let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
+        let lx = item.x; let ly = item.y + item.baseH;
+
+        ctx.strokeStyle = color; ctx.fillStyle = color;
+        let ahW = 8 / scale, ahH = 16 / scale;
+
+        // 1. Vertikale gestrichelte Linie zeichnen
+        ctx.beginPath();
+        ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
+        ctx.moveTo(lx, arrowTailY);
+        ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. Pfeilspitze oben am Fuß zeichnen
+        ctx.beginPath();
+        if (isUplift) {
+            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
+        } else {
+            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
+        }
+
+        // --- NEUE TEXT- UND KÄSTCHEN-LOGIK ---
+        let stateText = isUplift ? ' (ZUG)' : '';
+        let labelStr = item.label; // z.B. "S1 & S2"
+        let forceStr = `2× ${(absF / 2).toFixed(1)} kN${stateText}`; // z.B. "2× 14.5 kN"
+
+        // 3. Kästchen für die Stützenbezeichnung (S1 & S2) am unteren Ende der Linie
         ctx.save();
-        ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1.5 / scale;
+        ctx.font = `bold ${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+        let textMetrics = ctx.measureText(labelStr);
+        let boxW = textMetrics.width + (40 * SCALE_GLOBAL / scale); // Textbreite + Padding
+        let boxH = 60 * SCALE_GLOBAL / scale;
+        let boxX = lx - boxW / 2;
+        let boxY = arrowTailY; // Rahmen beginnt exakt an der Unterkante der Hilfslinie
 
-        allLegData.forEach(item => {
-            let isUplift = item.forceKN < 0;
-            let absF = Math.abs(item.forceKN);
-            let ratio = absF / maxGlobalF;
-            let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
-            let lx = item.x; let ly = item.y + item.baseH;
+        // Hintergrund für Lesbarkeit (weiß auf Druck, leicht hell auf Canvas)
+        ctx.fillStyle = window.isPrintingActive ? '#ffffff' : '#f4f6f8';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
 
-            ctx.strokeStyle = color; ctx.fillStyle = color;
-            let ahW = 8 / scale, ahH = 16 / scale;
+        // Rahmen
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.0 / scale;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-            ctx.beginPath();
-            ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
-            ctx.moveTo(lx, arrowTailY);
-            ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.beginPath();
-            if (isUplift) {
-                ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
-            } else {
-                ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
-            }
-
-            let stateText = isUplift ? ' (ZUG)' : '';
-            let forceLabel = `F${item.localIdx}: 2× ${(absF / 2).toFixed(1)} kN${stateText}`;
-
-            ctx.save();
-            ctx.translate(lx - (25 * SCALE_GLOBAL / scale), dimY2 + (20 * SCALE_GLOBAL / scale));
-            ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = 'right';
-            ctx.fillText(forceLabel, 0, 0);
-            ctx.restore();
-        });
+        // Text im Rahmen
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelStr, lx, boxY + boxH / 2);
         ctx.restore();
-    }
+
+        // 4. Kraftangabe vertikal an der Linie ausrichten
+        ctx.save();
+        ctx.translate(lx - (20 * SCALE_GLOBAL / scale), arrowTailY - (20 * SCALE_GLOBAL / scale)); // Leicht links der Linie, unten angesetzt
+        ctx.rotate(-Math.PI / 2); // 90 Grad nach oben drehen
+        ctx.textAlign = 'left';   // Linksbündig, damit es von unten nach oben wächst
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = color;
+        ctx.font = `${45 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+        ctx.fillText(forceStr, 0, 0);
+        ctx.restore();
+    });
+
+    ctx.restore();
+}
 
     function draw() {
         const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
