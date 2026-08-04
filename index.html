@@ -760,8 +760,22 @@
 
         <div id="settings-modal" class="modal-overlay">
             <h3 id="settings-title">Einstellungen</h3>
-            <label id="settings-weight-label" for="settings-weight-input">Gewicht</label><input type="number" id="settings-weight-input" min="0">
-            <label>Farbe (für alle Bauteile dieses Typs)</label>
+            <label id="settings-weight-label" for="settings-weight-input">Gewicht</label>
+            <input type="number" id="settings-weight-input" min="0">
+
+            <div id="settings-physics-controls" style="display:none; margin-top: 15px; border-top: 1px solid #334155; padding-top: 15px;">
+                <label>E-Modul (N/mm²)</label>
+                <input type="number" id="settings-e-input" min="1000" step="1000">
+                <label>Flächenträgheitsmoment Iy (cm⁴)</label>
+                <input type="number" id="settings-i-input" min="10" step="10">
+            </div>
+
+            <div id="settings-spring-controls" style="display:none; margin-top: 15px; border-top: 1px solid #334155; padding-top: 15px;">
+                <label>Federsteifigkeit Stütze (kN/m)</label>
+                <input type="number" id="settings-k-input" min="100" step="100" title="Beispiel: 10.000 kN/m = 10 kN pro mm Einsinken">
+            </div>
+
+            <label style="margin-top: 15px;">Farbe</label>
             <div class="color-palette" style="margin-bottom: 20px;">
                 <div class="color-swatch" data-color="#0f172a" style="background-color: #0f172a;" onclick="selectSettingColor(this)"></div>
                 <div class="color-swatch" data-color="#2563eb" style="background-color: #2563eb;" onclick="selectSettingColor(this)"></div>
@@ -802,13 +816,14 @@
 
     let elements = [];
     let projMeta = { objNr: "OBJEKT-NR.", fbId: "FÖRDERBAND-ID", ersteller: "" };
-    const moduleSettings = {
-        '2480.svg': { title: 'Bandelement 2480', weightMode: 'per_m', weightVal: 350, length: 2.48, color: '#0f172a' },
-        '3720.svg': { title: 'Bandelement 3720', weightMode: 'per_m', weightVal: 350, length: 3.72, color: '#0f172a' },
-        'knick': { title: 'Knick-Modul', weightMode: 'total', weightVal: 500, color: '#0f172a' },
-        'antriebstation.svg': { title: 'Antriebsstation', weightMode: 'total', weightVal: 3000, color: '#0f172a' },
-        'Spannstation.svg': { title: 'Spannstation', weightMode: 'total', weightVal: 1300, color: '#0f172a' }
-    };
+const moduleSettings = {
+    '2480.svg': { title: 'Bandelement 2480', weightMode: 'per_m', weightVal: 350, length: 2.48, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+    '3720.svg': { title: 'Bandelement 3720', weightMode: 'per_m', weightVal: 350, length: 3.72, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+    'knick': { title: 'Knick-Modul', weightMode: 'total', weightVal: 500, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+    'antriebstation.svg': { title: 'Antriebsstation', weightMode: 'total', weightVal: 3000, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+    'Spannstation.svg': { title: 'Spannstation', weightMode: 'total', weightVal: 1300, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+    'assembly_leg': { title: 'Stützfuß (komplett)', weightMode: 'total', weightVal: 50, color: '#0f172a', spring_k: 10000 }
+};
 let currentSettingKey = null;
 let isAltDown = false; // NEU: Status für die Alt-Taste
 let lastUpliftWarning = 0; // NEU: Puffer für die Abhebe-Warnung
@@ -877,120 +892,75 @@ window.addEventListener('keyup', (e) => {
 
 function openStatikInfoModal() {
     const container = document.getElementById('statik-info-content');
-    let html = '';
 
-    if (typeof getSystems !== 'function' || typeof calculateSystemStatics !== 'function') {
-        container.innerHTML = '<div class="info-text">Statik-System noch nicht bereit.</div>';
-        document.getElementById('statik-info-modal').style.display = 'block';
-        return;
-    }
+    let html = `<div style="margin-bottom: 20px;">
+            <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftlicher Simulationsaufbau</h4>
+            <div class="info-text" style="margin-top: 10px; line-height: 1.6;">
+                Die statische Berechnung dieses Baukastens basiert auf der <b>Methode der finiten Elemente (Steifigkeitsverfahren)</b>. Eigengewichte werden als echte <b>Streckenlasten ($q$)</b> verarbeitet und nicht als künstliche Punktlasten.
+            </div>
+            
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Elementsteifigkeitsmatrix (Balken)</h5>
+            <div class="info-text">
+                Das System wird an Modulgrenzen und Stützen in $n$ Bernoulli-Balkenelemente der Länge $L$ unterteilt. Die lokale Matrix $\mathbf{K_e}$ für Biegung definiert sich über den E-Modul und das Trägheitsmoment ($EI_y$):
+            </div>
+            <div class="formula-box">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
 
-    let systems = getSystems();
-
-    if (systems.length === 0) {
-        html = '<div class="info-text">Kein auswertbares System auf der Zeichenfläche vorhanden.</div>';
-    } else {
-        systems.forEach((group, sysIdx) => {
-            let statics = calculateSystemStatics(group);
-
-            if (!statics) {
-                let totalWeight = 0; let minX = Infinity, maxX = -Infinity;
-                group.forEach(el => {
-                    let p = getElementWeightProfile(el);
-                    if (p) { totalWeight += p.weight; if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX; }
-                });
-                let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-                let spanMeter = (totalSpan / SCALE_GLOBAL / 1000).toFixed(2);
-                let F_tot_kN = totalWeight * 9.81 / 1000;
-
-                html += `<div style="border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 15px;">`;
-                html += `<h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 1rem;">System ${sysIdx + 1}</h4>`;
-                html += `<div class="info-text"><b>Systemlänge ($L_{ges}$):</b> ${spanMeter} m<br><b>Gesamtgewicht:</b> ${totalWeight.toFixed(1)} kg<br><b>Resultierende Gewichtskraft ($F_{ges}$):</b> ${F_tot_kN.toFixed(2)} kN</div>`;
-                html += `<div class="info-text" style="color: #ef4444;">Achtung: Keine Stützen platziert! Das System ist instabil.</div></div>`;
-                return;
-            }
-
-            let { legItems, minX, maxX, totalWeight, F_tot_kN, X_cg } = statics;
-            let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-            let spanMeter = (totalSpan / SCALE_GLOBAL / 1000).toFixed(2);
-
-            html += `<div style="border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 15px;">`;
-            html += `<h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 1rem;">System ${sysIdx + 1}</h4>`;
-            html += `<div class="info-text"><b>Systemlänge ($L_{ges}$):</b> ${spanMeter} m<br><b>Gesamtgewicht:</b> ${totalWeight.toFixed(1)} kg<br><b>Resultierende Gewichtskraft ($F_{ges}$):</b> ${F_tot_kN.toFixed(2)} kN</div>`;
-
-            if (legItems.length === 1) {
-                html += `<div class="info-text"><b>Statisches Modell:</b> Kragarm (1 Stütze)</div>`;
-                html += `<div class="formula-box">$$F_1 = F_{ges} = ${F_tot_kN.toFixed(2)} \\text{ kN}$$</div>`;
-            } else if (legItems.length === 2) {
-                let F1 = legItems[0].forceKN;
-                let F2 = legItems[1].forceKN;
-                html += `<div class="info-text"><b>Statisches Modell:</b> Statisch bestimmt (Einfeldträger mit Kragarmen)</div>`;
-                html += `<div class="formula-box">$$F_1 = ${F1.toFixed(2)} \\text{ kN} \\quad | \\quad F_2 = ${F2.toFixed(2)} \\text{ kN}$$</div>`;
-                if (F1 < 0 || F2 < 0) {
-                    html += `<div class="info-text" style="color: #ef4444; margin-top:5px;"><b>WICHTIG:</b> Eine Stütze erfährt Zugkräfte (Abheben) und muss verankert werden!</div>`;
-                }
-            } else {
-                html += `<div class="info-text"><b>Statisches Modell:</b> Durchlaufträger (${legItems.length - 2}-fach statisch unbestimmt)</div>`;
-                html += `<div class="info-text">Berechnung über die <b>Dreimomentengleichung (Clapeyron'scher Ursatz)</b> unter Annahme konstanter Biegesteifigkeit ($EI = \\text{const}$).</div>`;
-
-                legItems.forEach(item => {
-                    let state = item.forceKN < 0 ? " \\textcolor{#ef4444}{\\text{ (ZUG)}}" : "";
-                    html += `<div class="formula-box">$$F_{${item.localIdx}} = ${Math.abs(item.forceKN).toFixed(2)} \\text{ kN}${state}$$</div>`;
-                });
-            }
-
-            // ERKLÄRUNG ZU DEN TREPPENSTUFEN & SCHNITTGRÖSSEN
-            html += `<div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #334155;">`;
-            html += `<div class="info-text" style="color: #38bdf8; font-weight: bold; margin-bottom: 4px;">ℹ️ Hinweis zum Schnittgrößen-Diagramm:</div>`;
-            html += `<div class="info-text" style="font-size: 0.8rem; margin-bottom: 0;">`;
-            html += `• <b>Treppenstufen in $Q(x)$:</b> Jedes Modul wird im Statikmodell als Einzellast in seinem Schwerpunkt angesetzt. Die waagerechten Abschnitte entstehen, weil zwischen den Modulgrenzen/Knotenpunkten keine weiteren Kräfte angreifen.<br>`;
-            html += `• <b>Knicke in $M(x)$:</b> Das Biegemoment verändert seine Steigung exakt an den Lasteinleitungspunkten und erreicht an den Stützen seine Extremwerte.`;
-            html += `</div></div>`;
-
-            // EXKURS: STATISCHE VERSPANNUNG (WIPPEN-EFFEKT)
-            html += `<div style="background: #1e293b; padding: 12px; border-radius: 6px; margin-top: 10px; border: 1px dashed #f59e0b;">`;
-            html += `<div class="info-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 8px;">💡 Exkurs: Das Wippen-Phänomen (Statische Verspannung)</div>`;
-            html += `<div class="info-text" style="font-size: 0.8rem; margin-bottom: 0; line-height: 1.5;">`;
-            html += `Wenn Stützen extrem dicht nebeneinander stehen und daneben ein massiver Überhang (Kragarm) mit schweren Lasten in der Luft hängt, verhält sich das Konstrukt wie eine Wippe. Die letzte Stütze vor dem Überhang wirkt dabei als Drehpunkt.<br><br>`;
-            html += `Die Stütze kurz davor muss mit gigantischer Kraft nach unten ziehen (<b>ZUG</b>), damit die Anlage nicht vornüberkippt. Weil sie das Band gewaltsam nach unten zieht, muss die als Drehpunkt wirkende Stütze nicht nur das Eigengewicht der Anlage tragen, sondern <i>zusätzlich</i> auch noch gegen diesen gewaltigen Zug ankämpfen. Die Druckkraft explodiert – man spricht von einem statischen Kurzschluss.<br><br>`;
-            html += `Entfernt man die Zug-Stütze, ist das Wippen-Problem gelöst. Das System stützt sich entspannt über einen großen Hebelarm auf weiter entfernte Stützen ab und die Kräfte brechen auf realistische Werte ein. Der Solver schützt so effektiv vor unglücklichen Stützen-Platzierungen!`;
-            html += `</div></div>`;
-
-            html += `</div>`;
-        });
-    }
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">2. Streckenlasten & Elastische Auflager</h5>
+            <div class="info-text">
+                Das Gewicht der Bänder ($q$ in kN/m) wird über äquivalente Knotenlasten (Festspannmomente $\\frac{qL^2}{12}$) in den globalen Lastvektor $\\mathbf{F}$ integriert. Gleichzeitig weisen die Teleskopstützen eine Federsteifigkeit $k_s$ auf, welche auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert wird (Winkler'sche Bettung).
+            </div>
+            
+            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Lösung & Schnittgrößen</h5>
+            <div class="info-text">
+                Nach Lösung des Gleichungssystems $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$ ergeben sich die Stützkräfte $R_i = -k_{s,i} \\cdot u_{z,i}$. Die Querkraft $Q(x)$ und das Biegemoment $M(x)$ werden anschließend durch exakte Integralbildung der Streckenlasten und Stützkräfte über die gesamte Länge berechnet (ergibt perfekte Parabeln).
+            </div>
+        </div>`;
 
     container.innerHTML = html;
-
     if (typeof renderMathInElement === 'function') {
-        renderMathInElement(container, {
-            delimiters: [
-                { left: '$$', right: '$$', display: true },
-                { left: '$', right: '$', display: false }
-            ],
-            throwOnError: false
-        });
+        renderMathInElement(container, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false });
     }
-
     document.getElementById('statik-info-modal').style.display = 'block';
 }
-    function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
 
-    function openSettings(key) {
-        currentSettingKey = key; const set = moduleSettings[key];
-        document.getElementById('settings-title').innerText = set.title;
-        document.getElementById('settings-weight-label').innerText = set.weightMode === 'per_m' ? 'Gewicht (kg/lfm)' : 'Gesamtgewicht (kg)';
-        document.getElementById('settings-weight-input').value = set.weightVal;
-        document.querySelectorAll('#settings-modal .color-swatch').forEach(s => { s.classList.remove('active'); if (s.dataset.color === set.color) s.classList.add('active'); });
-        document.getElementById('settings-modal').style.display = 'block';
+function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
+
+function openSettings(key) {
+    currentSettingKey = key; const set = moduleSettings[key];
+    document.getElementById('settings-title').innerText = set.title;
+    document.getElementById('settings-weight-label').innerText = set.weightMode === 'per_m' ? 'Gewicht (kg/lfm)' : 'Gesamtgewicht (kg)';
+    document.getElementById('settings-weight-input').value = set.weightVal;
+
+    if (key === 'assembly_leg') {
+        document.getElementById('settings-physics-controls').style.display = 'none';
+        document.getElementById('settings-spring-controls').style.display = 'block';
+        document.getElementById('settings-k-input').value = set.spring_k;
+    } else {
+        document.getElementById('settings-physics-controls').style.display = 'block';
+        document.getElementById('settings-spring-controls').style.display = 'none';
+        document.getElementById('settings-e-input').value = set.e_mod;
+        document.getElementById('settings-i-input').value = set.i_y;
     }
-    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; currentSettingKey = null; }
-    function selectSettingColor(el) { document.querySelectorAll('#settings-modal .color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); }
+
+    document.querySelectorAll('#settings-modal .color-swatch').forEach(s => { s.classList.remove('active'); if (s.dataset.color === set.color) s.classList.add('active'); });
+    document.getElementById('settings-modal').style.display = 'block';
+}
+
+function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; currentSettingKey = null; }
+function selectSettingColor(el) { document.querySelectorAll('#settings-modal .color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); }
 
 async function applySettings() {
     if (!currentSettingKey) return;
     const set = moduleSettings[currentSettingKey];
     set.weightVal = parseFloat(document.getElementById('settings-weight-input').value) || 0;
+
+    if (currentSettingKey === 'assembly_leg') {
+        set.spring_k = parseFloat(document.getElementById('settings-k-input').value) || 10000;
+    } else {
+        set.e_mod = parseFloat(document.getElementById('settings-e-input').value) || 210000;
+        set.i_y = parseFloat(document.getElementById('settings-i-input').value) || 3690;
+    }
+
     const activeSwatch = document.querySelector('#settings-modal .color-swatch.active');
     if (activeSwatch) { set.color = activeSwatch.dataset.color; }
 
@@ -1001,7 +971,6 @@ async function applySettings() {
                 el.flangeImg = await getTintedImage(el.flangeFilename, set.color);
                 el.detailsImg = await getTintedImage(el.detailsFilename, set.color);
             } else if (el.type === 'assembly_leg') {
-                // NEU: Alle 3 SVGs der Stütze einfärben
                 el.parts.stuetze.img = await getTintedImage('stütze.svg', set.color);
                 el.parts.teleskop.img = await getTintedImage('teleskopstange.svg', set.color);
                 el.parts.platte.img = await getTintedImage('stützplatte.svg', set.color);
@@ -2095,118 +2064,66 @@ async function updateLegBase(val) {
         }); return systems;
     }
 
-   // ==========================================
-    // MODULE 9: STATIK SOLVER & DIAGRAMME
-    // ==========================================
-    function solveContinuousBeam(supportXs, loads) {
-        let n = supportXs.length - 1;
-        let M = new Array(n + 1).fill(0);
-        let R = new Array(n + 1).fill(0);
+// ==========================================
+// MODULE 9: STATIK SOLVER & DIAGRAMME
+// ==========================================
 
-        // 1. Kragarm-Momente durch Überhänge
-        loads.forEach(load => {
-            if (load.x < supportXs[0] - 1e-4) M[0] += load.F * (supportXs[0] - load.x);
-            if (load.x > supportXs[n] + 1e-4) M[n] += load.F * (load.x - supportXs[n]);
-        });
-
-        if (n >= 2) {
-            let A = Array.from({ length: n - 1 }, () => new Array(n - 1).fill(0));
-            let B = new Array(n - 1).fill(0);
-
-            for (let i = 1; i < n; i++) {
-                let L_left = supportXs[i] - supportXs[i - 1];
-                let L_right = supportXs[i + 1] - supportXs[i];
-                let row = i - 1;
-
-                if (row > 0) A[row][row - 1] = L_left;
-                A[row][row] = 2 * (L_left + L_right);
-                if (row < n - 2) A[row][row + 1] = L_right;
-
-                let rhs = 0;
-                loads.forEach(load => {
-                    if (load.x > supportXs[i - 1] + 1e-4 && load.x < supportXs[i] - 1e-4) {
-                        let a = load.x - supportXs[i - 1];
-                        rhs -= load.F * a * (L_left * L_left - a * a) / L_left;
-                    }
-                    if (load.x > supportXs[i] + 1e-4 && load.x < supportXs[i + 1] - 1e-4) {
-                        let b = supportXs[i + 1] - load.x;
-                        rhs -= load.F * b * (L_right * L_right - b * b) / L_right;
-                    }
-                });
-
-                if (i === 1) rhs -= M[0] * L_left;
-                if (i === n - 1) rhs -= M[n] * L_right;
-                B[row] = rhs;
-            }
-
-            for (let i = 0; i < n - 1; i++) {
-                let pivot = A[i][i];
-                for (let j = i; j < n - 1; j++) A[i][j] /= pivot;
-                B[i] /= pivot;
-                for (let k = i + 1; k < n - 1; k++) {
-                    let factor = A[k][i];
-                    for (let j = i; j < n - 1; j++) A[k][j] -= factor * A[i][j];
-                    B[k] -= factor * B[i];
-                }
-            }
-            let x = new Array(n - 1).fill(0);
-            for (let i = n - 2; i >= 0; i--) {
-                x[i] = B[i];
-                for (let j = i + 1; j < n - 1; j++) x[i] -= A[i][j] * x[j];
-                M[i + 1] = x[i];
-            }
+// Gauss-Algorithmus zur Lösung des Matrixsystems K * u = F
+function gaussSolve(A, b) {
+    let n = b.length;
+    for (let p = 0; p < n; p++) {
+        let max = p;
+        for (let i = p + 1; i < n; i++) if (Math.abs(A[i][p]) > Math.abs(A[max][p])) max = i;
+        let temp = A[p]; A[p] = A[max]; A[max] = temp;
+        let t = b[p]; b[p] = b[max]; b[max] = t;
+        if (Math.abs(A[p][p]) < 1e-10) continue;
+        for (let i = p + 1; i < n; i++) {
+            let alpha = A[i][p] / A[p][p];
+            b[i] -= alpha * b[p];
+            for (let j = p; j < n; j++) A[i][j] -= alpha * A[p][j];
         }
-
-        // 3. Strikte und exklusive Zuweisung der Querkräfte (Doppelzählungs-Bug behoben)
-        loads.forEach(load => {
-            let handled = false;
-            for (let i = 0; i <= n; i++) {
-                if (Math.abs(load.x - supportXs[i]) <= 1e-4) {
-                    R[i] += load.F;
-                    handled = true;
-                    break;
-                }
-            }
-            if (handled) return;
-
-            if (load.x < supportXs[0] - 1e-4) {
-                R[0] += load.F;
-            } else if (load.x > supportXs[n] + 1e-4) {
-                R[n] += load.F;
-            } else {
-                for (let i = 0; i < n; i++) {
-                    if (load.x > supportXs[i] + 1e-4 && load.x < supportXs[i + 1] - 1e-4) {
-                        let L = supportXs[i + 1] - supportXs[i];
-                        let a = load.x - supportXs[i];
-                        let b = supportXs[i + 1] - load.x;
-                        R[i] += load.F * b / L;
-                        R[i + 1] += load.F * a / L;
-                        break;
-                    }
-                }
-            }
-        });
-
-        // 4. Anteile aus Stützmomenten aufaddieren
-        for (let i = 0; i < n; i++) {
-            let L = supportXs[i + 1] - supportXs[i];
-            R[i] += (M[i] - M[i + 1]) / L;
-            R[i + 1] += (M[i + 1] - M[i]) / L;
-        }
-
-        return { M, R };
     }
+    let x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+        let sum = 0;
+        for (let j = i + 1; j < n; j++) sum += A[i][j] * x[j];
+        x[i] = (b[i] - sum) / A[i][i];
+    }
+    return x;
+}
 
 function calculateSystemStatics(group) {
     let minX = Infinity, maxX = -Infinity;
-    let totalWeight = 0; let momentSum = 0; let loads = [];
+    let totalWeight = 0; let momentSum = 0;
+    let q_profiles = []; // Speichert die echten Streckenlast-Intervalle
+
+    let sumEI = 0, countEI = 0;
 
     group.forEach(el => {
+        let key = getElementKey(el);
+        let set = moduleSettings[key];
+        if (set) {
+            if (set.e_mod && set.i_y && (el.type === 'band' || el.type === 'knick' || el.type === 'end_unit')) {
+                let e_pa = set.e_mod * 1e6; // N/m²
+                let i_m4 = set.i_y * 1e-8;  // m^4
+                sumEI += (e_pa * i_m4);
+                countEI++;
+            }
+        }
+
         let p = getElementWeightProfile(el);
         if (p) {
             totalWeight += p.weight; momentSum += p.weight * p.cgX;
             if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX;
-            loads.push({ x: p.cgX / SCALE_GLOBAL / 1000, F: p.weight * 9.81 / 1000 });
+
+            // Streckenlast q (kN/m) für dieses Modul berechnen
+            let startM = p.minX / SCALE_GLOBAL / 1000;
+            let endM = p.maxX / SCALE_GLOBAL / 1000;
+            let w = endM - startM;
+            if (w > 0) {
+                let q = (p.weight * 9.81 / 1000) / w;
+                q_profiles.push({ start: startM, end: endM, q: q });
+            }
         }
     });
 
@@ -2229,41 +2146,77 @@ function calculateSystemStatics(group) {
     let F_tot_kN = totalWeight * 9.81 / 1000;
     let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
     let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
-    let X_cg_m = X_cg / SCALE_GLOBAL / 1000;
 
-    if (legItems.length === 1) {
-        legItems[0].forceKN = F_tot_kN;
-    } else if (legItems.length === 2) {
-        let x1 = legItems[0].x_m; let x2 = legItems[1].x_m; let L = x2 - x1;
-        if (L < 0.05) { legItems[0].forceKN = F_tot_kN / 2; legItems[1].forceKN = F_tot_kN / 2; }
-        else {
-            let a = X_cg_m - x1; let F2 = F_tot_kN * (a / L); let F1 = F_tot_kN - F2;
-            legItems[0].forceKN = F1; legItems[1].forceKN = F2;
-        }
-    } else {
-        let supportXs = legItems.map(l => l.x_m);
-        for (let i = 0; i < supportXs.length - 1; i++) { if (Math.abs(supportXs[i + 1] - supportXs[i]) < 0.05) supportXs[i + 1] += 0.05; }
-        let { R } = solveContinuousBeam(supportXs, loads);
-        legItems.forEach((item, i) => item.forceKN = R[i]);
-    }
+    // 1. Knoten für das FEA-System definieren
+    let rawNodes = new Set();
+    q_profiles.forEach(p => { rawNodes.add(p.start); rawNodes.add(p.end); });
+    legItems.forEach(l => rawNodes.add(l.x_m));
 
-    // Abhebende Stützen markieren
-    let hasUplift = false;
-    legItems.forEach(item => {
-        item.leg.isUplift = item.forceKN < -0.1;
-        if (item.leg.isUplift) hasUplift = true;
+    let sortedRawNodes = Array.from(rawNodes).sort((a, b) => a - b);
+    let nodes = [];
+    sortedRawNodes.forEach(x => {
+        if (nodes.length === 0 || x - nodes[nodes.length - 1] > 1e-3) nodes.push(x);
     });
 
-    // KORREKTUR: Warnung NUR ausgeben, wenn NICHT gedraggt wird & sauberer Timer
-    if (hasUplift && !isDraggingCanvas && !draggedElement) {
-        let now = Date.now();
-        if (!lastUpliftWarning || now - lastUpliftWarning > 5000) {
-            lastUpliftWarning = now;
-            showNotification("Statische Verspannung: Abhebende Stütze (rot) erkannt!");
+    let n = nodes.length;
+    let K = Array.from({ length: 2 * n }, () => new Float64Array(2 * n).fill(0));
+    let F_vec = new Float64Array(2 * n).fill(0);
+    let EI_val = countEI > 0 ? (sumEI / countEI) / 1000 : 7749;
+
+    // Numerische Stabilität (gegen Matrix-Singularität bei < 2 Stützen)
+    for (let i = 0; i < 2 * n; i++) K[i][i] += 1e-6;
+
+    // 2. Elementsteifigkeiten & Festspannmomente aufbauen
+    for (let i = 0; i < n - 1; i++) {
+        let L = nodes[i + 1] - nodes[i];
+        let mid = nodes[i] + L / 2;
+
+        let q_seg = 0;
+        q_profiles.forEach(p => { if (mid > p.start && mid < p.end) q_seg += p.q; });
+
+        let k11 = 12 * EI_val / (L * L * L), k12 = 6 * EI_val / (L * L), k22 = 4 * EI_val / L, k24 = 2 * EI_val / L;
+        let idx = 2 * i;
+        K[idx][idx] += k11; K[idx][idx + 1] += k12; K[idx][idx + 2] -= k11; K[idx][idx + 3] += k12;
+        K[idx + 1][idx] += k12; K[idx + 1][idx + 1] += k22; K[idx + 1][idx + 2] -= k12; K[idx + 1][idx + 3] += k24;
+        K[idx + 2][idx] -= k11; K[idx + 2][idx + 1] -= k12; K[idx + 2][idx + 2] += k11; K[idx + 2][idx + 3] -= k12;
+        K[idx + 3][idx] += k12; K[idx + 3][idx + 1] += k24; K[idx + 3][idx + 2] -= k12; K[idx + 3][idx + 3] += k22;
+
+        if (q_seg > 0) {
+            let fy = -q_seg * L / 2;
+            let m = -q_seg * L * L / 12;
+            F_vec[idx] += fy;
+            F_vec[idx + 1] += m;
+            F_vec[idx + 2] += fy;
+            F_vec[idx + 3] -= m;
         }
     }
 
-    return { legItems, minX, maxX, loads, totalWeight, F_tot_kN, X_cg };
+    // 3. Federsteifigkeiten der Stützen addieren
+    let k_spring_default = moduleSettings['assembly_leg']?.spring_k || 10000;
+    legItems.forEach(sup => {
+        let idx = nodes.findIndex(x => Math.abs(x - sup.x_m) < 2e-3);
+        if (idx !== -1) K[2 * idx][2 * idx] += k_spring_default;
+    });
+
+    // 4. Lösung und Auswertung
+    let u = gaussSolve(K, F_vec);
+    legItems.forEach(item => {
+        let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
+        item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
+    });
+
+    let hasUplift = false;
+    legItems.forEach(item => { item.leg.isUplift = item.forceKN < -0.1; if (item.leg.isUplift) hasUplift = true; });
+
+    if (hasUplift && typeof isDraggingCanvas !== 'undefined' && !isDraggingCanvas && (!draggedElement || dragGroup.length === 0)) {
+        let now = Date.now();
+        if (!window.lastUpliftWarning || now - window.lastUpliftWarning > 6000) {
+            window.lastUpliftWarning = now;
+            setTimeout(() => showNotification("Statische Verspannung: Abhebende Stütze (rot markiert) erkannt!"), 50);
+        }
+    }
+
+    return { legItems, minX, maxX, q_profiles, totalWeight, F_tot_kN, X_cg };
 }
 
     function getNiceMax(val) {
@@ -2302,15 +2255,32 @@ function renderSchnittgroessen() {
 
         for (let i = 0; i <= points; i++) {
             let x = startX_m + i * dx;
-            let q = 0; let m = 0;
+            let q_val = 0; let m_val = 0;
 
-            loads.forEach(load => { if (load.x <= x) { q -= load.F; m -= load.F * (x - load.x); } });
-            legItems.forEach(leg => { if (leg.x_m <= x) { q += leg.forceKN; m += leg.forceKN * (x - leg.x_m); } });
+            // Kontinuierliche Integration der Streckenlasten (ergibt glatte Parabeln!)
+            statics.q_profiles.forEach(p => {
+                if (x > p.start) {
+                    let w = Math.min(x, p.end) - p.start;
+                    let force = p.q * w;
+                    let lever = x - (p.start + w / 2);
+                    q_val -= force;
+                    m_val -= force * lever;
+                }
+            });
 
-            Q_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: q });
-            M_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: m });
-            if (Math.abs(q) > maxQ) maxQ = Math.abs(q);
-            if (Math.abs(m) > maxM) maxM = Math.abs(m);
+            // Punktlasten der Stützen (Sprünge im Q-Diagramm)
+            legItems.forEach(leg => {
+                if (leg.x_m <= x) {
+                    q_val += leg.forceKN;
+                    m_val += leg.forceKN * (x - leg.x_m);
+                }
+            });
+
+            Q_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: q_val });
+            M_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: m_val });
+
+            if (Math.abs(q_val) > maxQ) maxQ = Math.abs(q_val);
+            if (Math.abs(m_val) > maxM) maxM = Math.abs(m_val);
         }
 
         let niceMaxQ = getNiceMax(maxQ);
