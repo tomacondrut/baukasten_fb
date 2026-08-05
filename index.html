@@ -455,9 +455,9 @@
 
         #uplift-warning-indicator {
             position: absolute;
-            bottom: 50px; /* Exakt über der 40px hohen Statistik-Leiste platziert */
-            left: 20px; /* Bündig mit dem Text der Statistik-Leiste */
-            top: auto; /* Wichtig: top-Positionierung aufheben */
+            bottom: 50px;
+            left: 20px;
+            top: auto;
             background-color: #ef4444;
             color: white;
             padding: 8px 16px;
@@ -476,6 +476,7 @@
             #uplift-warning-indicator:hover {
                 background-color: #dc2626;
             }
+
         .toast-msg {
             background: #1e293b;
             color: #f87171;
@@ -554,7 +555,7 @@
                 display: block;
                 position: fixed;
                 bottom: 10mm;
-                right: 130mm; /* Verankert es exakt 10mm links neben dem Schriftfeld */
+                right: 130mm;
                 width: auto;
                 min-width: 70mm;
                 border: 0.35mm solid #000;
@@ -717,7 +718,6 @@
     </div>
 
     <div id="main-content">
-
         <div id="uplift-warning-indicator" title="Klicken für Details" onclick="showNotification('Eine oder mehrere Stützen unter Zugkraft (rot). Bitte Anordnung prüfen!')">
             ⚠️ Statische Verspannung
         </div>
@@ -743,8 +743,6 @@
             <button class="btn" onclick="smartCenterView()">Ansicht Zentrieren</button>
             <button class="btn btn-danger" onclick="clearCanvas()">Alles Löschen</button>
         </div>
-
-
 
         <div id="action-menu">
             <span style="color: #38bdf8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Aktion:</span>
@@ -850,17 +848,16 @@
 
     let elements = [];
     let projMeta = { objNr: "OBJEKT-NR.", fbId: "FÖRDERBAND-ID", ersteller: "" };
-const moduleSettings = {
-    '2480.svg': { title: 'Bandelement 2480', weightMode: 'per_m', weightVal: 350, length: 2.48, color: '#0f172a', e_mod: 210000, i_y: 3690 },
-    '3720.svg': { title: 'Bandelement 3720', weightMode: 'per_m', weightVal: 350, length: 3.72, color: '#0f172a', e_mod: 210000, i_y: 3690 },
-    'knick': { title: 'Knick-Modul', weightMode: 'total', weightVal: 500, color: '#0f172a', e_mod: 210000, i_y: 3690 },
-    'antriebstation.svg': { title: 'Antriebsstation', weightMode: 'total', weightVal: 3000, color: '#0f172a', e_mod: 210000, i_y: 3690 },
-    'Spannstation.svg': { title: 'Spannstation', weightMode: 'total', weightVal: 1300, color: '#0f172a', e_mod: 210000, i_y: 3690 },
-    'assembly_leg': { title: 'Stützfuß (komplett)', weightMode: 'total', weightVal: 50, color: '#0f172a', spring_k: 10000 }
-};
-let currentSettingKey = null;
-let isAltDown = false; // NEU: Status für die Alt-Taste
-let lastUpliftWarning = 0; // NEU: Puffer für die Abhebe-Warnung
+    const moduleSettings = {
+        '2480.svg': { title: 'Bandelement 2480', weightMode: 'per_m', weightVal: 350, length: 2.48, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+        '3720.svg': { title: 'Bandelement 3720', weightMode: 'per_m', weightVal: 350, length: 3.72, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+        'knick': { title: 'Knick-Modul', weightMode: 'total', weightVal: 500, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+        'antriebstation.svg': { title: 'Antriebsstation', weightMode: 'total', weightVal: 3000, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+        'Spannstation.svg': { title: 'Spannstation', weightMode: 'total', weightVal: 1300, color: '#0f172a', e_mod: 210000, i_y: 3690 },
+        'assembly_leg': { title: 'Stützfuß (komplett)', weightMode: 'total', weightVal: 50, color: '#0f172a', spring_k: 10000 }
+    };
+    let currentSettingKey = null;
+    let isAltDown = false;
 
     window.addEventListener('resize', () => {
         const dpr = window.devicePixelRatio || 1;
@@ -871,19 +868,15 @@ let lastUpliftWarning = 0; // NEU: Puffer für die Abhebe-Warnung
         canvas.style.height = rect.height + 'px';
         draw();
     });
-window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
 
-// NEU: Keydown / Keyup Listener für die Alt-Taste und Löschen
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; draw(); }
-    if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
-});
-window.addEventListener('keyup', (e) => {
-    if (e.key === 'Alt') { isAltDown = false; draw(); }
-});
-
-// ==========================================
-// MODULE 2: UI, MODALS & NOTIFICATIONS
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; draw(); }
+        if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'Alt') { isAltDown = false; draw(); }
+    });
 
     // ==========================================
     // MODULE 2: UI, MODALS & NOTIFICATIONS
@@ -924,126 +917,126 @@ window.addEventListener('keyup', (e) => {
     function openPrintModal() { document.getElementById('print-modal').style.display = 'block'; }
     function closePrintModal() { document.getElementById('print-modal').style.display = 'none'; }
 
-function openStatikInfoModal() {
-    const container = document.getElementById('statik-info-content');
+    function openStatikInfoModal() {
+        const container = document.getElementById('statik-info-content');
 
-    let html = `<div style="margin-bottom: 20px;">
-            <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftliche Berechnungsgrundlagen</h4>
-            <div class="info-text" style="margin-top: 10px; line-height: 1.6;">
-                Die statische Berechnung dieses Anlagen-Baukastens basiert auf der <b>Methode der finiten Elemente (Matrix-Verschiebungs-Methode / Steifigkeitsverfahren)</b>.
-                Im Gegensatz zu klassischen Kraftgrößenverfahren, bei denen unendlich starre Auflager zu unrealistischen Zwangskräften ("Wippen-Effekt") führen können, modelliert dieser Solver die reale makroskopische Elastizität des gesamten Fördersystems.
-            </div>
+        let html = `<div style="margin-bottom: 20px;">
+                <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftliche Berechnungsgrundlagen</h4>
+                <div class="info-text" style="margin-top: 10px; line-height: 1.6;">
+                    Die statische Berechnung dieses Anlagen-Baukastens basiert auf der <b>Methode der finiten Elemente (Matrix-Verschiebungs-Methode / Steifigkeitsverfahren)</b>.
+                    Im Gegensatz zu klassischen Kraftgrößenverfahren, bei denen unendlich starre Auflager zu unrealistischen Zwangskräften ("Wippen-Effekt") führen können, modelliert dieser Solver die reale makroskopische Elastizität des gesamten Fördersystems.
+                </div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Die Euler-Bernoulli-Balkentheorie</h5>
-            <div class="info-text">
-                Das Gesamtsystem wird an Stützen und Modulgrenzen in $n$ diskrete Balkenelemente der Länge $L$ diskretisiert. Aufgrund des hohen Schlankheitsgrades der Förderbänder werden Schubverzerrungen vernachlässigt (Bernoulli-Hypothese).
-                Die Steifigkeit jedes Elements wird durch den E-Modul und das äquivalente Flächenträgheitsmoment ($EI_y$) definiert. Diese Parameter können durch detaillierte 3D-FEA-Simulationen an realen Profilen ermittelt und hier als idealisierter 1D-Ersatzquerschnitt eingepflegt werden. Die lokale Elementsteifigkeitsmatrix $\\mathbf{K_e}$ lautet:
-            </div>
-            <div class="formula-box" style="overflow-x: auto;">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
+                <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Die Euler-Bernoulli-Balkentheorie</h5>
+                <div class="info-text">
+                    Das Gesamtsystem wird an Stützen und Modulgrenzen in $n$ diskrete Balkenelemente der Länge $L$ diskretisiert. Aufgrund des hohen Schlankheitsgrades der Förderbänder werden Schubverzerrungen vernachlässigt (Bernoulli-Hypothese).
+                    Die Steifigkeit jedes Elements wird durch den E-Modul und das äquivalente Flächenträgheitsmoment ($EI_y$) definiert. Diese Parameter können durch detaillierte 3D-FEA-Simulationen an realen Profilen ermittelt und hier als idealisierter 1D-Ersatzquerschnitt eingepflegt werden. Die lokale Elementsteifigkeitsmatrix $\\mathbf{K_e}$ lautet:
+                </div>
+                <div class="formula-box" style="overflow-x: auto;">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">2. Kinematische Transformation von Streckenlasten</h5>
-            <div class="info-text">
-                Das Eigengewicht der Bänder wird physikalisch korrekt als kontinuierliche Streckenlast $q(x)$ in $\\text{kN/m}$ verarbeitet. Um diese in das diskrete Knotenmodell zu überführen, berechnet der Solver kinematisch äquivalente Knotenlasten (Festspannmomente). Diese werden als Vertikalkräfte $F_z = \\frac{qL}{2}$ und Biegemomente $M_y = \\pm \\frac{qL^2}{12}$ dem globalen Lastvektor $\\mathbf{F}$ aufgeprägt.
-            </div>
+                <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">2. Kinematische Transformation von Streckenlasten</h5>
+                <div class="info-text">
+                    Das Eigengewicht der Bänder wird physikalisch korrekt als kontinuierliche Streckenlast $q(x)$ in $\\text{kN/m}$ verarbeitet. Um diese in das diskrete Knotenmodell zu überführen, berechnet der Solver kinematisch äquivalente Knotenlasten (Festspannmomente). Diese werden als Vertikalkräfte $F_z = \\frac{qL}{2}$ und Biegemomente $M_y = \\pm \\frac{qL^2}{12}$ dem globalen Lastvektor $\\mathbf{F}$ aufgeprägt.
+                </div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Elastische Bettung (Winkler-Modell)</h5>
-            <div class="info-text">
-                Teleskopstützen, Profilverschraubungen und Betonsockel geben unter Last mikroskopisch nach. Diese axiale Nachgiebigkeit wird durch eine lineare Federsteifigkeit $k_s$ in $\\text{kN/m}$ abgebildet.
-                Mathematisch werden diese Werte auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert. Dies verhindert Matrix-Singularitäten und baut statische Verspannungsspitzen bei eng stehenden Stützen realistisch ab – das System kann sich in seinen Auflagern "setzen".
-            </div>
+                <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Elastische Bettung (Winkler-Modell)</h5>
+                <div class="info-text">
+                    Teleskopstützen, Profilverschraubungen und Betonsockel geben unter Last mikroskopisch nach. Diese axiale Nachgiebigkeit wird durch eine lineare Federsteifigkeit $k_s$ in $\\text{kN/m}$ abgebildet.
+                    Mathematisch werden diese Werte auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert. Dies verhindert Matrix-Singularitäten und baut statische Verspannungsspitzen bei eng stehenden Stützen realistisch ab – das System kann sich in seinen Auflagern "setzen".
+                </div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">4. Systemlösung & Differentialgleichung der Biegelinie</h5>
-            <div class="info-text">
-                Durch Assemblierung aller Matrizen entsteht das globale lineare Gleichungssystem $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$, welches per numerischer Gauß-Elimination nach dem Verschiebungsvektor $\\mathbf{u}$ aufgelöst wird.
-                Die tatsächlichen Auflagerkräfte $R_i$ ergeben sich aus dem Hooke'schen Gesetz ($R_i = -k_{s,i} \\cdot u_{z,i}$).
-                Der stetige Verlauf der Schnittgrößen im Diagramm resultiert abschließend aus der analytischen Integration der Streckenlasten gemäß der Differentialgleichung der Biegelinie:
-            </div>
-            <div class="formula-box">$$ \\frac{dQ(x)}{dx} = -q(x) \\quad \\Rightarrow \\quad \\frac{dM_y(x)}{dx} = Q(x) $$</div>
+                <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">4. Systemlösung & Differentialgleichung der Biegelinie</h5>
+                <div class="info-text">
+                    Durch Assemblierung aller Matrizen entsteht das globale lineare Gleichungssystem $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$, welches per numerischer Gauß-Elimination nach dem Verschiebungsvektor $\\mathbf{u}$ aufgelöst wird.
+                    Die tatsächlichen Auflagerkräfte $R_i$ ergeben sich aus dem Hooke'schen Gesetz ($R_i = -k_{s,i} \\cdot u_{z,i}$).
+                    Der stetige Verlauf der Schnittgrößen im Diagramm resultiert abschließend aus der analytischen Integration der Streckenlasten gemäß der Differentialgleichung der Biegelinie:
+                </div>
+                <div class="formula-box">$$ \\frac{dQ(x)}{dx} = -q(x) \\quad \\Rightarrow \\quad \\frac{dM_y(x)}{dx} = Q(x) $$</div>
 
-            <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">5. Einfluss von Bandneigungen (Horizontale Projektion)</h5>
-            <div class="info-text">
-                Räumliche Neigungswinkel (z. B. durch Knick-Module) werden über eine <b>horizontale Projektion</b> in das 1D-Stabmodell überführt. Die effektive Systemlänge eines schrägen Bandes verkürzt sich dabei geometrisch:
-            </div>
-            <div class="formula-box">$$ L_{\\text{proj}} = L_{\\text{real}} \\cdot \\cos(\\alpha) $$</div>
-            <div class="info-text">
-                Da Eigengewichtskräfte stets absolut vertikal wirken, berechnet die Projektionsmethode die resultierenden Biegemomente $M_y$ und vertikalen Auflagerkräfte $R_z$ über die verkürzten horizontalen Hebelarme physikalisch exakt. Das Modell fungiert dabei als reiner Biegebalken; parallel zur Bandachse wirkende Hangabtriebskräfte (Normalkräfte $N(x)$) werden als für die vertikale Stützenbemessung vernachlässigbar klein abgebildet (gültig für typische Förderbandneigungen $\\alpha \\le 20^\\circ$).
-            </div>
-        </div>`;
+                <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">5. Einfluss von Bandneigungen (Horizontale Projektion)</h5>
+                <div class="info-text">
+                    Räumliche Neigungswinkel (z. B. durch Knick-Module) werden über eine <b>horizontale Projektion</b> in das 1D-Stabmodell überführt. Die effektive Systemlänge eines schrägen Bandes verkürzt sich dabei geometrisch:
+                </div>
+                <div class="formula-box">$$ L_{\\text{proj}} = L_{\\text{real}} \\cdot \\cos(\\alpha) $$</div>
+                <div class="info-text">
+                    Da Eigengewichtskräfte stets absolut vertikal wirken, berechnet die Projektionsmethode die resultierenden Biegemomente $M_y$ und vertikalen Auflagerkräfte $R_z$ über die verkürzten horizontalen Hebelarme physikalisch exakt. Das Modell fungiert dabei als reiner Biegebalken; parallel zur Bandachse wirkende Hangabtriebskräfte (Normalkräfte $N(x)$) werden als für die vertikale Stützenbemessung vernachlässigbar klein abgebildet (gültig für typische Förderbandneigungen $\\alpha \\le 20^\\circ$).
+                </div>
+            </div>`;
 
-    container.innerHTML = html;
-    if (typeof renderMathInElement === 'function') {
-        renderMathInElement(container, {
-            delimiters: [
-                { left: '$$', right: '$$', display: true },
-                { left: '$', right: '$', display: false }
-            ],
-            throwOnError: false
-        });
-    }
-    document.getElementById('statik-info-modal').style.display = 'block';
-}
-
-function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
-
-function openSettings(key) {
-    currentSettingKey = key; const set = moduleSettings[key];
-    document.getElementById('settings-title').innerText = set.title;
-    document.getElementById('settings-weight-label').innerText = set.weightMode === 'per_m' ? 'Gewicht (kg/lfm)' : 'Gesamtgewicht (kg)';
-    document.getElementById('settings-weight-input').value = set.weightVal;
-
-    if (key === 'assembly_leg') {
-        document.getElementById('settings-physics-controls').style.display = 'none';
-        document.getElementById('settings-spring-controls').style.display = 'block';
-        document.getElementById('settings-k-input').value = set.spring_k;
-        document.getElementById('settings-leg-name-input').value = set.startName || 'F1'; // <-- NEU
-    } else {
-        document.getElementById('settings-physics-controls').style.display = 'block';
-        document.getElementById('settings-spring-controls').style.display = 'none';
-        document.getElementById('settings-e-input').value = set.e_mod;
-        document.getElementById('settings-i-input').value = set.i_y;
+        container.innerHTML = html;
+        if (typeof renderMathInElement === 'function') {
+            renderMathInElement(container, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false }
+                ],
+                throwOnError: false
+            });
+        }
+        document.getElementById('statik-info-modal').style.display = 'block';
     }
 
-    document.querySelectorAll('#settings-modal .color-swatch').forEach(s => { s.classList.remove('active'); if (s.dataset.color === set.color) s.classList.add('active'); });
-    document.getElementById('settings-modal').style.display = 'block';
-}
+    function closeStatikInfoModal() { document.getElementById('statik-info-modal').style.display = 'none'; }
 
-function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; currentSettingKey = null; }
-function selectSettingColor(el) { document.querySelectorAll('#settings-modal .color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); }
+    function openSettings(key) {
+        currentSettingKey = key; const set = moduleSettings[key];
+        document.getElementById('settings-title').innerText = set.title;
+        document.getElementById('settings-weight-label').innerText = set.weightMode === 'per_m' ? 'Gewicht (kg/lfm)' : 'Gesamtgewicht (kg)';
+        document.getElementById('settings-weight-input').value = set.weightVal;
 
-async function applySettings() {
-    if (!currentSettingKey) return;
-    const set = moduleSettings[currentSettingKey];
-    set.weightVal = parseFloat(document.getElementById('settings-weight-input').value) || 0;
+        if (key === 'assembly_leg') {
+            document.getElementById('settings-physics-controls').style.display = 'none';
+            document.getElementById('settings-spring-controls').style.display = 'block';
+            document.getElementById('settings-k-input').value = set.spring_k;
+            document.getElementById('settings-leg-name-input').value = set.startName || 'F1';
+        } else {
+            document.getElementById('settings-physics-controls').style.display = 'block';
+            document.getElementById('settings-spring-controls').style.display = 'none';
+            document.getElementById('settings-e-input').value = set.e_mod;
+            document.getElementById('settings-i-input').value = set.i_y;
+        }
 
-    if (currentSettingKey === 'assembly_leg') {
-        set.spring_k = parseFloat(document.getElementById('settings-k-input').value) || 10000;
-        set.startName = document.getElementById('settings-leg-name-input').value.trim() || 'F1'; // <-- NEU
-    } else {
-        set.e_mod = parseFloat(document.getElementById('settings-e-input').value) || 210000;
-        set.i_y = parseFloat(document.getElementById('settings-i-input').value) || 3690;
+        document.querySelectorAll('#settings-modal .color-swatch').forEach(s => { s.classList.remove('active'); if (s.dataset.color === set.color) s.classList.add('active'); });
+        document.getElementById('settings-modal').style.display = 'block';
     }
 
-    const activeSwatch = document.querySelector('#settings-modal .color-swatch.active');
-    if (activeSwatch) { set.color = activeSwatch.dataset.color; }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; currentSettingKey = null; }
+    function selectSettingColor(el) { document.querySelectorAll('#settings-modal .color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); }
 
-    for (let el of elements) {
-        if (getElementKey(el) === currentSettingKey) {
-            el.color = set.color;
-            if (el.type === 'knick') {
-                el.flangeImg = await getTintedImage(el.flangeFilename, set.color);
-                el.detailsImg = await getTintedImage(el.detailsFilename, set.color);
-            } else if (el.type === 'assembly_leg') {
-                el.parts.stuetze.img = await getTintedImage('stütze.svg', set.color);
-                el.parts.teleskop.img = await getTintedImage('teleskopstange.svg', set.color);
-                el.parts.platte.img = await getTintedImage('stützplatte.svg', set.color);
-                if (el.baseType === 'heb120' && el.baseData) el.baseImg = await getTintedImage('HEB120.svg', set.color);
-            } else if (el.filename) {
-                el.img = await getTintedImage(el.filename, set.color);
+    async function applySettings() {
+        if (!currentSettingKey) return;
+        const set = moduleSettings[currentSettingKey];
+        set.weightVal = parseFloat(document.getElementById('settings-weight-input').value) || 0;
+
+        if (currentSettingKey === 'assembly_leg') {
+            set.spring_k = parseFloat(document.getElementById('settings-k-input').value) || 10000;
+            set.startName = document.getElementById('settings-leg-name-input').value.trim() || 'F1';
+        } else {
+            set.e_mod = parseFloat(document.getElementById('settings-e-input').value) || 210000;
+            set.i_y = parseFloat(document.getElementById('settings-i-input').value) || 3690;
+        }
+
+        const activeSwatch = document.querySelector('#settings-modal .color-swatch.active');
+        if (activeSwatch) { set.color = activeSwatch.dataset.color; }
+
+        for (let el of elements) {
+            if (getElementKey(el) === currentSettingKey) {
+                el.color = set.color;
+                if (el.type === 'knick') {
+                    el.flangeImg = await getTintedImage(el.flangeFilename, set.color);
+                    el.detailsImg = await getTintedImage(el.detailsFilename, set.color);
+                } else if (el.type === 'assembly_leg') {
+                    el.parts.stuetze.img = await getTintedImage('stütze.svg', set.color);
+                    el.parts.teleskop.img = await getTintedImage('teleskopstange.svg', set.color);
+                    el.parts.platte.img = await getTintedImage('stützplatte.svg', set.color);
+                    if (el.baseType === 'heb120' && el.baseData) el.baseImg = await getTintedImage('HEB120.svg', set.color);
+                } else if (el.filename) {
+                    el.img = await getTintedImage(el.filename, set.color);
+                }
             }
         }
+        closeSettings(); updateStats(); draw();
     }
-    closeSettings(); updateStats(); draw();
-}
 
     function updateStats() {
         let totalWeight = 0; let count2480 = 0; let count3720 = 0; let knickCounts = {}; let visited = new Set();
@@ -1119,16 +1112,16 @@ async function applySettings() {
         const rect = canvas.parentElement.getBoundingClientRect();
         return { x: (e.clientX - rect.left - panX) / scale, y: (e.clientY - rect.top - panY) / scale };
     }
-function getElementKey(el) {
-    if (el.type === 'knick') return 'knick';
-    if (el.type === 'assembly_leg') return 'assembly_leg'; // NEU
-    if (el.filename) {
-        if (el.filename.includes('2480')) return '2480.svg';
-        if (el.filename.includes('3720')) return '3720.svg';
-        return el.filename;
+    function getElementKey(el) {
+        if (el.type === 'knick') return 'knick';
+        if (el.type === 'assembly_leg') return 'assembly_leg';
+        if (el.filename) {
+            if (el.filename.includes('2480')) return '2480.svg';
+            if (el.filename.includes('3720')) return '3720.svg';
+            return el.filename;
+        }
+        return null;
     }
-    return null;
-}
 
     function getConnectedGroup(root) {
         let group = new Set();
@@ -1225,7 +1218,7 @@ function getElementKey(el) {
         return pt;
     }
 
-function getElementWorldBounds(el) {
+    function getElementWorldBounds(el) {
         let w = el.width, h = el.height;
         let corners = [];
         if (el.type === 'assembly_leg') {
@@ -1250,7 +1243,6 @@ function getElementWorldBounds(el) {
             const dynamicH = (el.parts.stuetze.height * 0.1) * s + extH + teH + plH - topConnY + baseH;
             h = Math.max(stH, dynamicH);
 
-            // KORREKTUR: Symmetrische Bounding-Box basierend auf der maximalen Breite (Sockel)
             let maxW = Math.max(w, baseW);
             let cX = el.x + w/2;
             corners = [
@@ -1491,31 +1483,31 @@ function getElementWorldBounds(el) {
         elements.push(newEl); selectSingle(newEl); updateStats(); draw();
     }
 
-async function addStuetzfuss() {
-    const stuetzeSvg = await loadSVG('stütze.svg'); const teleskopSvg = await loadSVG('teleskopstange.svg'); const platteSvg = await loadSVG('stützplatte.svg');
-    if (!stuetzeSvg || !teleskopSvg || !platteSvg) return;
-    const center = getViewportCenter();
-    const initColor = moduleSettings['assembly_leg'] ? moduleSettings['assembly_leg'].color : '#0f172a';
-    const redColor = '#ef4444'; // Signal-Rot für abhebende Stützen
+    async function addStuetzfuss() {
+        const stuetzeSvg = await loadSVG('stütze.svg'); const teleskopSvg = await loadSVG('teleskopstange.svg'); const platteSvg = await loadSVG('stützplatte.svg');
+        if (!stuetzeSvg || !teleskopSvg || !platteSvg) return;
+        const center = getViewportCenter();
+        const initColor = moduleSettings['assembly_leg'] ? moduleSettings['assembly_leg'].color : '#0f172a';
+        const redColor = '#ef4444';
 
-    const newEl = {
-        id: Date.now(), type: 'assembly_leg', x: center.x - (stuetzeSvg.width * SCALE_GLOBAL) / 2, y: center.y, scaleFactor: SCALE_GLOBAL,
-        parts: {
-            stuetze: { ...stuetzeSvg, img: await getTintedImage('stütze.svg', initColor) },
-            teleskop: { ...teleskopSvg, img: await getTintedImage('teleskopstange.svg', initColor) },
-            platte: { ...platteSvg, img: await getTintedImage('stützplatte.svg', initColor) }
-        },
-        redParts: {
-            stuetze: await getTintedImage('stütze.svg', redColor),
-            teleskop: await getTintedImage('teleskopstange.svg', redColor),
-            platte: await getTintedImage('stützplatte.svg', redColor)
-        },
-        connector: stuetzeSvg.connectors[0] || { x: stuetzeSvg.width / 2, y: 0 },
-        extension: 0, baseType: 'none', baseHeight: 150, baseData: null, baseImg: null, redBaseImg: null, parent: null, color: initColor,
-        isDetached: false, ignoreSnapUntilMove: false, detachStartX: 0, detachStartY: 0, isUplift: false
-    };
-    elements.push(newEl); selectSingle(newEl); updateStats(); draw();
-}
+        const newEl = {
+            id: Date.now(), type: 'assembly_leg', x: center.x - (stuetzeSvg.width * SCALE_GLOBAL) / 2, y: center.y, scaleFactor: SCALE_GLOBAL,
+            parts: {
+                stuetze: { ...stuetzeSvg, img: await getTintedImage('stütze.svg', initColor) },
+                teleskop: { ...teleskopSvg, img: await getTintedImage('teleskopstange.svg', initColor) },
+                platte: { ...platteSvg, img: await getTintedImage('stützplatte.svg', initColor) }
+            },
+            redParts: {
+                stuetze: await getTintedImage('stütze.svg', redColor),
+                teleskop: await getTintedImage('teleskopstange.svg', redColor),
+                platte: await getTintedImage('stützplatte.svg', redColor)
+            },
+            connector: stuetzeSvg.connectors[0] || { x: stuetzeSvg.width / 2, y: 0 },
+            extension: 0, baseType: 'none', baseHeight: 150, baseData: null, baseImg: null, redBaseImg: null, parent: null, color: initColor,
+            isDetached: false, ignoreSnapUntilMove: false, detachStartX: 0, detachStartY: 0, isUplift: false
+        };
+        elements.push(newEl); selectSingle(newEl); updateStats(); draw();
+    }
 
     function recalculateChainAlignment(startNode) {
         elements.forEach(child => {
@@ -1664,58 +1656,56 @@ async function addStuetzfuss() {
     // ==========================================
     // MODULE 7: INPUT CONTROLS (MOUSE & MENU)
     // ==========================================
-function getElementAtPosition(pos) {
-    for (let i = elements.length - 1; i >= 0; i--) {
-        const el = elements[i];
+    function getElementAtPosition(pos) {
+        for (let i = elements.length - 1; i >= 0; i--) {
+            const el = elements[i];
 
-        // Wenn Alt gedrückt ist, ignorieren wir alle Bänder und Knicke beim Klicken
-        if (isAltDown && el.type !== 'assembly_leg') continue;
+            if (isAltDown && el.type !== 'assembly_leg') continue;
 
-        let invOps = [...getTransformOps(el)].reverse().map(op => ({ ...op, angle: -op.angle }));
-        let testPt = transformPoint(pos, invOps);
+            let invOps = [...getTransformOps(el)].reverse().map(op => ({ ...op, angle: -op.angle }));
+            let testPt = transformPoint(pos, invOps);
 
-        if (el.type === 'band' || el.type === 'end_unit') {
-            if (testPt.x >= el.x && testPt.x <= el.x + el.width && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
-        } else if (el.type === 'knick') {
-            const bWidth = el.width * Math.max(Math.abs(el.knickAngle) / 8.0, 1.0);
-            if (testPt.x >= el.x && testPt.x <= el.x + bWidth && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
-        } else if (el.type === 'assembly_leg') {
-            const s = el.scaleFactor;
-            const stW = el.parts.stuetze.width * s;
-            const extH = (el.extension + 250) * s;
-            const teH = el.parts.teleskop.height * s;
-            const plH = el.parts.platte.height * s;
+            if (el.type === 'band' || el.type === 'end_unit') {
+                if (testPt.x >= el.x && testPt.x <= el.x + el.width && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
+            } else if (el.type === 'knick') {
+                const bWidth = el.width * Math.max(Math.abs(el.knickAngle) / 8.0, 1.0);
+                if (testPt.x >= el.x && testPt.x <= el.x + bWidth && testPt.y >= el.y && testPt.y <= el.y + el.height) return el;
+            } else if (el.type === 'assembly_leg') {
+                const s = el.scaleFactor;
+                const stW = el.parts.stuetze.width * s;
+                const extH = (el.extension + 250) * s;
+                const teH = el.parts.teleskop.height * s;
+                const plH = el.parts.platte.height * s;
 
-            let topConnY = 0;
-            if (el.parts.platte.connectors && el.parts.platte.connectors.length > 0) {
-                let tc = el.parts.platte.connectors.find(c => c.type === 'top_connector');
-                if (tc) topConnY = tc.y * s;
-            }
+                let topConnY = 0;
+                if (el.parts.platte.connectors && el.parts.platte.connectors.length > 0) {
+                    let tc = el.parts.platte.connectors.find(c => c.type === 'top_connector');
+                    if (tc) topConnY = tc.y * s;
+                }
 
-            let baseH = 0;
-            let baseW = stW;
-            if (el.baseType === 'sockel') { baseH = (el.baseHeight || 150) * s; baseW = 400 * s; }
-            else if (el.baseType === 'heb120' && el.baseData) { baseH = el.baseData.height * s; baseW = el.baseData.width * s; }
+                let baseH = 0;
+                let baseW = stW;
+                if (el.baseType === 'sockel') { baseH = (el.baseHeight || 150) * s; baseW = 400 * s; }
+                else if (el.baseType === 'heb120' && el.baseData) { baseH = el.baseData.height * s; baseW = el.baseData.width * s; }
 
-            const stH = el.parts.stuetze.height * s;
-            const dynamicH = (el.parts.stuetze.height * 0.1) * s + extH + teH + plH - topConnY + baseH;
-            const totalH = Math.max(stH, dynamicH);
-            const hitWidth = Math.max(stW, baseW);
+                const stH = el.parts.stuetze.height * s;
+                const dynamicH = (el.parts.stuetze.height * 0.1) * s + extH + teH + plH - topConnY + baseH;
+                const totalH = Math.max(stH, dynamicH);
+                const hitWidth = Math.max(stW, baseW);
 
-            // KORREKTUR: Wenn Alt gedrückt wird, explodiert die Hit-Box auf gigantische Ausmaße für einfache Klicks
-            const pad = isAltDown ? 300 * s : 30 * s;
+                const pad = isAltDown ? 300 * s : 30 * s;
 
-            let cX = el.x + stW / 2;
-            let minX = cX - hitWidth / 2 - pad;
-            let maxX = cX + hitWidth / 2 + pad;
+                let cX = el.x + stW / 2;
+                let minX = cX - hitWidth / 2 - pad;
+                let maxX = cX + hitWidth / 2 + pad;
 
-            if (testPt.x >= minX && testPt.x <= maxX && testPt.y >= el.y - pad && testPt.y <= el.y + totalH + pad) {
-                return el;
+                if (testPt.x >= minX && testPt.x <= maxX && testPt.y >= el.y - pad && testPt.y <= el.y + totalH + pad) {
+                    return el;
+                }
             }
         }
+        return null;
     }
-    return null;
-}
 
     function selectSingle(el) { selectedElements = el ? [el] : []; updateActionMenu(); }
     function toggleSelect(el) {
@@ -1766,19 +1756,19 @@ function getElementAtPosition(pos) {
             selectedElements[0].extension = parseFloat(val); document.getElementById('val-extension').innerText = `${val}mm`; draw();
         }
     }
-async function updateLegBase(val) {
-    if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
-        let el = selectedElements[0]; el.baseType = val;
-        if (val === 'heb120' && !el.baseData) {
-            el.baseData = await loadSVG('HEB120.svg');
-            if (el.baseData) {
-                el.baseImg = await getTintedImage('HEB120.svg', el.color || '#0f172a');
-                el.redBaseImg = await getTintedImage('HEB120.svg', '#ef4444');
+    async function updateLegBase(val) {
+        if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
+            let el = selectedElements[0]; el.baseType = val;
+            if (val === 'heb120' && !el.baseData) {
+                el.baseData = await loadSVG('HEB120.svg');
+                if (el.baseData) {
+                    el.baseImg = await getTintedImage('HEB120.svg', el.color || '#0f172a');
+                    el.redBaseImg = await getTintedImage('HEB120.svg', '#ef4444');
+                }
             }
+            updateActionMenu(); draw();
         }
-        updateActionMenu(); draw();
     }
-}
     function updateSockelHeight(val) {
         if (selectedElements.length === 1 && selectedElements[0].type === 'assembly_leg') {
             selectedElements[0].baseHeight = parseInt(val); document.getElementById('val-sockel-height').innerText = `${val}mm`; draw();
@@ -1841,30 +1831,28 @@ async function updateLegBase(val) {
         draw();
     }
 
-canvas.addEventListener('mousedown', (e) => {
-    canvas.focus();
-    const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
-    if (hit) {
-        if (e.ctrlKey || e.metaKey) toggleSelect(hit);
-        else if (!selectedElements.includes(hit)) selectSingle(hit);
-        draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
+    canvas.addEventListener('mousedown', (e) => {
+        canvas.focus();
+        const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
+        if (hit) {
+            if (e.ctrlKey || e.metaKey) toggleSelect(hit);
+            else if (!selectedElements.includes(hit)) selectSingle(hit);
+            draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
 
-        hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
-        hit._hasJumpedToMouse = false;
+            hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
+            hit._hasJumpedToMouse = false;
 
-        // FEHLERBEHEBUNG FÜR ALTE SPEICHERDATEIEN:
-        // Wir stellen sicher, dass _dragFreeX/Y niemals undefined ist!
-        dragGroup.forEach(el => {
-            el._dragFreeX = (typeof el._dragFreeX === 'number' && !isNaN(el._dragFreeX)) ? el._dragFreeX : el.x;
-            el._dragFreeY = (typeof el._dragFreeY === 'number' && !isNaN(el._dragFreeY)) ? el._dragFreeY : el.y;
-        });
+            dragGroup.forEach(el => {
+                el._dragFreeX = (typeof el._dragFreeX === 'number' && !isNaN(el._dragFreeX)) ? el._dragFreeX : el.x;
+                el._dragFreeY = (typeof el._dragFreeY === 'number' && !isNaN(el._dragFreeY)) ? el._dragFreeY : el.y;
+            });
 
-    } else {
-        if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
-        isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
-    }
-    lastMouseWorld = getCanvasCoords(e); draw();
-});
+        } else {
+            if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
+            isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
+        }
+        lastMouseWorld = getCanvasCoords(e); draw();
+    });
 
 canvas.addEventListener('mousemove', (e) => {
     if (draggedElement && dragGroup.length > 0) {
@@ -1892,7 +1880,7 @@ canvas.addEventListener('mousemove', (e) => {
             }
         }
 
-        // 3. Echte Mausbewegung auf die "freien" Geister-Koordinaten addieren
+        // 3. Echte Mausbewegung auf die "freien" Geister-Koordinaten des HAUPT-ELEMENTS addieren
         let localDx = worldDx, localDy = worldDy;
         if (draggedElement.type !== 'assembly_leg') {
             const angle = getChainAngle(draggedElement);
@@ -1903,14 +1891,36 @@ canvas.addEventListener('mousemove', (e) => {
             }
         }
 
-        dragGroup.forEach(el => {
-            el._dragFreeX += localDx;
-            el._dragFreeY += localDy;
+        // KORREKTUR: Relativen Offset aller Gruppen-Elemente zum Haupt-Element beibehalten!
+        let mainOldX = draggedElement._dragFreeX;
+        let mainOldY = draggedElement._dragFreeY;
 
-            // Alle Elemente auf freie Maus-Position setzen
-            el.x = el._dragFreeX;
-            el.y = el._dragFreeY;
+        draggedElement._dragFreeX += localDx;
+        draggedElement._dragFreeY += localDy;
+        draggedElement.x = draggedElement._dragFreeX;
+        draggedElement.y = draggedElement._dragFreeY;
+
+        let shiftGroupX = draggedElement._dragFreeX - mainOldX;
+        let shiftGroupY = draggedElement._dragFreeY - mainOldY;
+
+        dragGroup.forEach(el => {
+            if (el !== draggedElement) {
+                el._dragFreeX += shiftGroupX;
+                el._dragFreeY += shiftGroupY;
+                el.x = el._dragFreeX;
+                el.y = el._dragFreeY;
+            }
         });
+
+        // Flansch-Geometrie für Unter-Baugruppen starr beibehalten
+        if (draggedElement.type !== 'assembly_leg') {
+            recalculateChainAlignment(draggedElement);
+            // Synchronisiere _dragFree nach dem Ausrichten der Kette
+            dragGroup.forEach(el => {
+                el._dragFreeX = el.x;
+                el._dragFreeY = el.y;
+            });
+        }
 
         lastMouseWorld = currentMouseWorld;
 
@@ -1953,7 +1963,6 @@ canvas.addEventListener('mousemove', (e) => {
                     let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
                     let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
 
-                    // Nur visuell verschieben (_dragFreeX bleibt stetig)
                     let shiftX = idealX - draggedElement.x;
                     let shiftY = idealY - draggedElement.y;
                     dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
@@ -1971,7 +1980,6 @@ canvas.addEventListener('mousemove', (e) => {
                     elements.forEach(other => {
                         if (dragGroup.includes(other) || other.isDetached) return;
 
-                        // Warnung Knick <-> Endstation
                         if ((draggedElement.type === 'knick' && other.type === 'end_unit') ||
                             (draggedElement.type === 'end_unit' && other.type === 'knick')) {
 
@@ -2011,10 +2019,12 @@ canvas.addEventListener('mousemove', (e) => {
                     let idealX = bestSnap.other.x + otherOff.x - myOff.x;
                     let idealY = bestSnap.other.y + otherOff.y - myOff.y;
 
-                    // Nur visuell verschieben (_dragFreeX bleibt stetig)
                     let shiftX = idealX - draggedElement.x;
                     let shiftY = idealY - draggedElement.y;
                     dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+
+                    // Kettenausrichtung auch im gerasteten Zustand aufrechterhalten
+                    recalculateChainAlignment(draggedElement);
                     snappedParent = bestSnap.other;
                 }
             }
@@ -2139,49 +2149,46 @@ canvas.addEventListener('mousemove', (e) => {
         });
     }
 
-function renderHeightKoten() {
-    const toggle = document.getElementById('toggle-koten'); if (!toggle || !toggle.checked) return;
-    const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+    function renderHeightKoten() {
+        const toggle = document.getElementById('toggle-koten'); if (!toggle || !toggle.checked) return;
+        const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
 
-    let legData = [];
-    let lowestPlateY = -Infinity; // Speichert das Niveau der tiefsten Stützplatte für ±0.00
+        let legData = [];
+        let lowestPlateY = -Infinity;
 
-    legs.forEach(leg => {
-        let plBottomCenter = getLegBottomWorldCenter(leg);
+        legs.forEach(leg => {
+            let plBottomCenter = getLegBottomWorldCenter(leg);
 
-        // Die tiefste Stützplatte wird als Referenz (±0.00) ermittelt (ohne Unterbau/Sockel)
-        if (plBottomCenter.y > lowestPlateY) lowestPlateY = plBottomCenter.y;
+            if (plBottomCenter.y > lowestPlateY) lowestPlateY = plBottomCenter.y;
 
-        legData.push({ pos: plBottomCenter });
-    });
+            legData.push({ pos: plBottomCenter });
+        });
 
-    ctx.save();
-    ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = '#0ea5e9';
-    ctx.strokeStyle = '#0ea5e9';
-    ctx.lineWidth = 1.0 / scale;
+        ctx.save();
+        ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = '#0ea5e9';
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.lineWidth = 1.0 / scale;
 
-    legData.forEach(item => {
-        // Die Anzeige berechnet sich nun rein aus dem Abstand zur tiefsten Stützplatte
-        let diffPx = lowestPlateY - item.pos.y;
-        let mmVal = Math.round(diffPx / SCALE_GLOBAL);
-        let mVal = (mmVal / 1000).toFixed(2);
-        let labelText = (mmVal === 0) ? '±0.00' : `+${mVal}`;
+        legData.forEach(item => {
+            let diffPx = lowestPlateY - item.pos.y;
+            let mmVal = Math.round(diffPx / SCALE_GLOBAL);
+            let mVal = (mmVal / 1000).toFixed(2);
+            let labelText = (mmVal === 0) ? '±0.00' : `+${mVal}`;
 
-        // lx und ly sind exakt die Unterkante der Stützplatte
-        let lx = item.pos.x, ly = item.pos.y;
-        let offsetX = 150 * SCALE_GLOBAL / scale; let koteX = lx + offsetX;
-        let triW = 30 * SCALE_GLOBAL / scale, triH = 40 * SCALE_GLOBAL / scale, lineLength = 180 * SCALE_GLOBAL / scale;
+            let lx = item.pos.x, ly = item.pos.y;
+            let offsetX = 150 * SCALE_GLOBAL / scale; let koteX = lx + offsetX;
+            let triW = 30 * SCALE_GLOBAL / scale, triH = 40 * SCALE_GLOBAL / scale, lineLength = 180 * SCALE_GLOBAL / scale;
 
-        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(koteX + triW + 10 * SCALE_GLOBAL / scale, ly); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(koteX, ly); ctx.lineTo(koteX - triW, ly - triH); ctx.lineTo(koteX + triW, ly - triH); ctx.closePath(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(koteX + triW, ly - triH); ctx.lineTo(koteX + triW + lineLength, ly - triH); ctx.stroke();
-        ctx.fillText(labelText, koteX + triW + 15 * SCALE_GLOBAL / scale, ly - triH - 5 * SCALE_GLOBAL / scale);
-    });
-    ctx.restore();
-}
+            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(koteX + triW + 10 * SCALE_GLOBAL / scale, ly); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(koteX, ly); ctx.lineTo(koteX - triW, ly - triH); ctx.lineTo(koteX + triW, ly - triH); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(koteX + triW, ly - triH); ctx.lineTo(koteX + triW + lineLength, ly - triH); ctx.stroke();
+            ctx.fillText(labelText, koteX + triW + 15 * SCALE_GLOBAL / scale, ly - triH - 5 * SCALE_GLOBAL / scale);
+        });
+        ctx.restore();
+    }
 
     function renderDimensions() {
         const toggle = document.getElementById('toggle-massketten'); if (!toggle || !toggle.checked) return;
@@ -2236,173 +2243,158 @@ function renderHeightKoten() {
         }); return systems;
     }
 
-// ==========================================
-// MODULE 9: STATIK SOLVER & DIAGRAMME
-// ==========================================
-
-// Gauss-Algorithmus zur Lösung des Matrixsystems K * u = F
-function gaussSolve(A, b) {
-    let n = b.length;
-    for (let p = 0; p < n; p++) {
-        let max = p;
-        for (let i = p + 1; i < n; i++) if (Math.abs(A[i][p]) > Math.abs(A[max][p])) max = i;
-        let temp = A[p]; A[p] = A[max]; A[max] = temp;
-        let t = b[p]; b[p] = b[max]; b[max] = t;
-        if (Math.abs(A[p][p]) < 1e-10) continue;
-        for (let i = p + 1; i < n; i++) {
-            let alpha = A[i][p] / A[p][p];
-            b[i] -= alpha * b[p];
-            for (let j = p; j < n; j++) A[i][j] -= alpha * A[p][j];
+    // ==========================================
+    // MODULE 9: STATIK SOLVER & DIAGRAMME
+    // ==========================================
+    function gaussSolve(A, b) {
+        let n = b.length;
+        for (let p = 0; p < n; p++) {
+            let max = p;
+            for (let i = p + 1; i < n; i++) if (Math.abs(A[i][p]) > Math.abs(A[max][p])) max = i;
+            let temp = A[p]; A[p] = A[max]; A[max] = temp;
+            let t = b[p]; b[p] = b[max]; b[max] = t;
+            if (Math.abs(A[p][p]) < 1e-10) continue;
+            for (let i = p + 1; i < n; i++) {
+                let alpha = A[i][p] / A[p][p];
+                b[i] -= alpha * b[p];
+                for (let j = p; j < n; j++) A[i][j] -= alpha * A[p][j];
+            }
         }
+        let x = new Array(n).fill(0);
+        for (let i = n - 1; i >= 0; i--) {
+            let sum = 0;
+            for (let j = i + 1; j < n; j++) sum += A[i][j] * x[j];
+            x[i] = (b[i] - sum) / A[i][i];
+        }
+        return x;
     }
-    let x = new Array(n).fill(0);
-    for (let i = n - 1; i >= 0; i--) {
-        let sum = 0;
-        for (let j = i + 1; j < n; j++) sum += A[i][j] * x[j];
-        x[i] = (b[i] - sum) / A[i][i];
-    }
-    return x;
-}
 
-// [BREADCRUMB: V24 - DYNAMIC LEG NAMING & FEM CONTINUOUS LOADS]
-// FEHLER: Stützen hatten harte, statische IDs (F1, F2), was bei der Integration in größere Inventor-Anlagenmodelle (wo Bezeichnungen wie S23 starten) unpraktisch war.
-// LÖSUNG: Regex-Parser in calculateSystemStatics eingefügt, der Präfix und Startnummer (z.B. "S" und "23") trennt und für alle gefundenen Stützen hochzählt. Zudem wurde der Solver auf Streckenlasten umgerüstet.
+    function calculateSystemStatics(group) {
+        let minX = Infinity, maxX = -Infinity;
+        let totalWeight = 0; let momentSum = 0;
+        let q_profiles = [];
 
-function calculateSystemStatics(group) {
-    let minX = Infinity, maxX = -Infinity;
-    let totalWeight = 0; let momentSum = 0;
-    let q_profiles = []; // Speichert die echten Streckenlast-Intervalle
+        let sumEI = 0, countEI = 0;
 
-    let sumEI = 0, countEI = 0;
+        group.forEach(el => {
+            let key = getElementKey(el);
+            let set = moduleSettings[key];
+            if (set) {
+                if (set.e_mod && set.i_y && (el.type === 'band' || el.type === 'knick' || el.type === 'end_unit')) {
+                    let e_pa = set.e_mod * 1e6;
+                    let i_m4 = set.i_y * 1e-8;
+                    sumEI += (e_pa * i_m4);
+                    countEI++;
+                }
+            }
 
-    group.forEach(el => {
-        let key = getElementKey(el);
-        let set = moduleSettings[key];
-        if (set) {
-            if (set.e_mod && set.i_y && (el.type === 'band' || el.type === 'knick' || el.type === 'end_unit')) {
-                let e_pa = set.e_mod * 1e6; // N/m²
-                let i_m4 = set.i_y * 1e-8;  // m^4
-                sumEI += (e_pa * i_m4);
-                countEI++;
+            let p = getElementWeightProfile(el);
+            if (p) {
+                totalWeight += p.weight; momentSum += p.weight * p.cgX;
+                if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX;
+
+                let startM = p.minX / SCALE_GLOBAL / 1000;
+                let endM = p.maxX / SCALE_GLOBAL / 1000;
+                let w = endM - startM;
+                if (w > 0) {
+                    let q = (p.weight * 9.81 / 1000) / w;
+                    q_profiles.push({ start: startM, end: endM, q: q });
+                }
+            }
+        });
+
+        let legs = group.filter(e => e.type === 'assembly_leg');
+        if (legs.length === 0) return null;
+
+        let legItems = legs.map((leg, idx) => {
+            let tip = getLegBottomWorldCenter(leg);
+            let baseH = 0;
+            if (leg.baseType === 'sockel') baseH = leg.baseHeight * SCALE_GLOBAL;
+            else if (leg.baseType === 'heb120' && leg.baseData) {
+                baseH = leg.baseData.height * SCALE_GLOBAL;
+                if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
+            }
+            return { leg, x: tip.x, y: tip.y, baseH, x_m: tip.x / SCALE_GLOBAL / 1000 };
+        }).sort((a, b) => a.x - b.x);
+
+        let startName = moduleSettings['assembly_leg']?.startName || "S1";
+        let prefix = "S", startNum = 1;
+        let match = startName.match(/^([^0-9]*)(\d+)$/);
+        if (match) {
+            prefix = match[1];
+            startNum = parseInt(match[2], 10);
+        } else {
+            prefix = startName;
+            startNum = 1;
+        }
+
+        legItems.forEach((item, idx) => {
+            item.localIdx = idx + 1;
+            let num1 = startNum + (idx * 2);
+            let num2 = num1 + 1;
+            item.label = `${prefix}${num1} & ${prefix}${num2}`;
+        });
+
+        let F_tot_kN = totalWeight * 9.81 / 1000;
+        let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
+        let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
+
+        let rawNodes = new Set();
+        q_profiles.forEach(p => { rawNodes.add(p.start); rawNodes.add(p.end); });
+        legItems.forEach(l => rawNodes.add(l.x_m));
+
+        let sortedRawNodes = Array.from(rawNodes).sort((a, b) => a - b);
+        let nodes = [];
+        sortedRawNodes.forEach(x => {
+            if (nodes.length === 0 || x - nodes[nodes.length - 1] > 1e-3) nodes.push(x);
+        });
+
+        let n = nodes.length;
+        let K = Array.from({ length: 2 * n }, () => new Float64Array(2 * n).fill(0));
+        let F_vec = new Float64Array(2 * n).fill(0);
+        let EI_val = countEI > 0 ? (sumEI / countEI) / 1000 : 7749;
+
+        for (let i = 0; i < 2 * n; i++) K[i][i] += 1e-6;
+
+        for (let i = 0; i < n - 1; i++) {
+            let L = nodes[i + 1] - nodes[i];
+            let mid = nodes[i] + L / 2;
+
+            let q_seg = 0;
+            q_profiles.forEach(p => { if (mid > p.start && mid < p.end) q_seg += p.q; });
+
+            let k11 = 12 * EI_val / (L * L * L), k12 = 6 * EI_val / (L * L), k22 = 4 * EI_val / L, k24 = 2 * EI_val / L;
+            let idx = 2 * i;
+            K[idx][idx] += k11; K[idx][idx + 1] += k12; K[idx][idx + 2] -= k11; K[idx][idx + 3] += k12;
+            K[idx + 1][idx] += k12; K[idx + 1][idx + 1] += k22; K[idx + 1][idx + 2] -= k12; K[idx + 1][idx + 3] += k24;
+            K[idx + 2][idx] -= k11; K[idx + 2][idx + 1] -= k12; K[idx + 2][idx + 2] += k11; K[idx + 2][idx + 3] -= k12;
+            K[idx + 3][idx] += k12; K[idx + 3][idx + 1] += k24; K[idx + 3][idx + 2] -= k12; K[idx + 3][idx + 3] += k22;
+
+            if (q_seg > 0) {
+                let fy = -q_seg * L / 2;
+                let m = -q_seg * L * L / 12;
+                F_vec[idx] += fy;
+                F_vec[idx + 1] += m;
+                F_vec[idx + 2] += fy;
+                F_vec[idx + 3] -= m;
             }
         }
 
-        let p = getElementWeightProfile(el);
-        if (p) {
-            totalWeight += p.weight; momentSum += p.weight * p.cgX;
-            if (p.minX < minX) minX = p.minX; if (p.maxX > maxX) maxX = p.maxX;
+        let k_spring_default = moduleSettings['assembly_leg']?.spring_k || 10000;
+        legItems.forEach(sup => {
+            let idx = nodes.findIndex(x => Math.abs(x - sup.x_m) < 2e-3);
+            if (idx !== -1) K[2 * idx][2 * idx] += k_spring_default;
+        });
 
-            // Streckenlast q (kN/m) für dieses Modul berechnen
-            let startM = p.minX / SCALE_GLOBAL / 1000;
-            let endM = p.maxX / SCALE_GLOBAL / 1000;
-            let w = endM - startM;
-            if (w > 0) {
-                let q = (p.weight * 9.81 / 1000) / w;
-                q_profiles.push({ start: startM, end: endM, q: q });
-            }
-        }
-    });
+        let u = gaussSolve(K, F_vec);
+        legItems.forEach(item => {
+            let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
+            item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
+            item.leg.isUplift = item.forceKN < -0.1;
+        });
 
-    let legs = group.filter(e => e.type === 'assembly_leg');
-    if (legs.length === 0) return null;
-
-    let legItems = legs.map((leg, idx) => {
-        let tip = getLegBottomWorldCenter(leg);
-        let baseH = 0;
-        if (leg.baseType === 'sockel') baseH = leg.baseHeight * SCALE_GLOBAL;
-        else if (leg.baseType === 'heb120' && leg.baseData) {
-            baseH = leg.baseData.height * SCALE_GLOBAL;
-            if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
-        }
-        return { leg, x: tip.x, y: tip.y, baseH, x_m: tip.x / SCALE_GLOBAL / 1000 };
-    }).sort((a, b) => a.x - b.x);
-
-    // --- HIER PASSIERT DAS INTELLIGENTE PARSEN DER ZWILLINGS-NAMEN (z.B. S23) ---
-    let startName = moduleSettings['assembly_leg']?.startName || "S1";
-    let prefix = "S", startNum = 1;
-    let match = startName.match(/^([^0-9]*)(\d+)$/);
-    if (match) {
-        prefix = match[1];
-        startNum = parseInt(match[2], 10);
-    } else {
-        prefix = startName;
-        startNum = 1;
+        return { legItems, minX, maxX, q_profiles, totalWeight, F_tot_kN, X_cg };
     }
-
-    legItems.forEach((item, idx) => {
-        item.localIdx = idx + 1;
-        // Pro Stützbock (2D) gibt es zwei physische Stützen (3D)
-        let num1 = startNum + (idx * 2);
-        let num2 = num1 + 1;
-        item.label = `${prefix}${num1} & ${prefix}${num2}`; // Generiert z.B. "S23 & S24"
-    });
-    // --- ENDE BENENNUNG ---
-
-    let F_tot_kN = totalWeight * 9.81 / 1000;
-    let totalSpan = maxX - minX; if (totalSpan <= 0) totalSpan = 1;
-    let X_cg = totalWeight > 0 ? momentSum / totalWeight : minX + totalSpan / 2;
-
-    // 1. Knoten für das FEA-System definieren
-    let rawNodes = new Set();
-    q_profiles.forEach(p => { rawNodes.add(p.start); rawNodes.add(p.end); });
-    legItems.forEach(l => rawNodes.add(l.x_m));
-
-    let sortedRawNodes = Array.from(rawNodes).sort((a, b) => a - b);
-    let nodes = [];
-    sortedRawNodes.forEach(x => {
-        if (nodes.length === 0 || x - nodes[nodes.length - 1] > 1e-3) nodes.push(x);
-    });
-
-    let n = nodes.length;
-    let K = Array.from({ length: 2 * n }, () => new Float64Array(2 * n).fill(0));
-    let F_vec = new Float64Array(2 * n).fill(0);
-    let EI_val = countEI > 0 ? (sumEI / countEI) / 1000 : 7749;
-
-    // Numerische Stabilität (gegen Matrix-Singularität bei < 2 Stützen)
-    for (let i = 0; i < 2 * n; i++) K[i][i] += 1e-6;
-
-    // 2. Elementsteifigkeiten & Festspannmomente aufbauen
-    for (let i = 0; i < n - 1; i++) {
-        let L = nodes[i + 1] - nodes[i];
-        let mid = nodes[i] + L / 2;
-
-        let q_seg = 0;
-        q_profiles.forEach(p => { if (mid > p.start && mid < p.end) q_seg += p.q; });
-
-        let k11 = 12 * EI_val / (L * L * L), k12 = 6 * EI_val / (L * L), k22 = 4 * EI_val / L, k24 = 2 * EI_val / L;
-        let idx = 2 * i;
-        K[idx][idx] += k11; K[idx][idx + 1] += k12; K[idx][idx + 2] -= k11; K[idx][idx + 3] += k12;
-        K[idx + 1][idx] += k12; K[idx + 1][idx + 1] += k22; K[idx + 1][idx + 2] -= k12; K[idx + 1][idx + 3] += k24;
-        K[idx + 2][idx] -= k11; K[idx + 2][idx + 1] -= k12; K[idx + 2][idx + 2] += k11; K[idx + 2][idx + 3] -= k12;
-        K[idx + 3][idx] += k12; K[idx + 3][idx + 1] += k24; K[idx + 3][idx + 2] -= k12; K[idx + 3][idx + 3] += k22;
-
-        if (q_seg > 0) {
-            let fy = -q_seg * L / 2;
-            let m = -q_seg * L * L / 12;
-            F_vec[idx] += fy;
-            F_vec[idx + 1] += m;
-            F_vec[idx + 2] += fy;
-            F_vec[idx + 3] -= m;
-        }
-    }
-
-    // 3. Federsteifigkeiten der Stützen addieren
-    let k_spring_default = moduleSettings['assembly_leg']?.spring_k || 10000;
-    legItems.forEach(sup => {
-        let idx = nodes.findIndex(x => Math.abs(x - sup.x_m) < 2e-3);
-        if (idx !== -1) K[2 * idx][2 * idx] += k_spring_default;
-    });
-
-    // 4. Lösung und Auswertung
-    let u = gaussSolve(K, F_vec);
-    legItems.forEach(item => {
-        let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
-        item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
-        item.leg.isUplift = item.forceKN < -0.1; // Setzt das Flag für Rote Einfärbung
-    });
-
-    return { legItems, minX, maxX, q_profiles, totalWeight, F_tot_kN, X_cg };
-}
 
     function getNiceMax(val) {
         if (val === 0) return 10;
@@ -2412,197 +2404,189 @@ function calculateSystemStatics(group) {
         return step * mag;
     }
 
-function renderSchnittgroessen() {
-    const toggle = document.getElementById('toggle-diagramme');
-    if (!toggle || !toggle.checked) return;
+    function renderSchnittgroessen() {
+        const toggle = document.getElementById('toggle-diagramme');
+        if (!toggle || !toggle.checked) return;
 
-    if (window.isPrintingAnlage) return;
+        if (window.isPrintingAnlage) return;
 
-    window.currentDiagramBounds = null;
-    ctx.save();
-    let totalMinX = Infinity, totalMaxX = -Infinity, totalMinY = Infinity, totalMaxY = -Infinity;
+        window.currentDiagramBounds = null;
+        ctx.save();
+        let totalMinX = Infinity, totalMaxX = -Infinity, totalMinY = Infinity, totalMaxY = -Infinity;
 
-    getSystems().forEach(group => {
-        let statics = calculateSystemStatics(group);
-        if (!statics || statics.legItems.length === 0) return;
+        getSystems().forEach(group => {
+            let statics = calculateSystemStatics(group);
+            if (!statics || statics.legItems.length === 0) return;
 
-        let { legItems, minX, maxX, loads } = statics;
-        let startX_m = minX / SCALE_GLOBAL / 1000;
-        let endX_m = maxX / SCALE_GLOBAL / 1000;
-        let startX_px = minX;
-        let endX_px = maxX;
+            let { legItems, minX, maxX, loads } = statics;
+            let startX_m = minX / SCALE_GLOBAL / 1000;
+            let endX_m = maxX / SCALE_GLOBAL / 1000;
+            let startX_px = minX;
+            let endX_px = maxX;
 
-        let points = 500;
-        let dx = (endX_m - startX_m) / points;
+            let points = 500;
+            let dx = (endX_m - startX_m) / points;
 
-        let Q_data = []; let M_data = [];
-        let maxQ = 0; let maxM = 0;
+            let Q_data = []; let M_data = [];
+            let maxQ = 0; let maxM = 0;
 
-        for (let i = 0; i <= points; i++) {
-            let x = startX_m + i * dx;
-            let q_val = 0; let m_val = 0;
+            for (let i = 0; i <= points; i++) {
+                let x = startX_m + i * dx;
+                let q_val = 0; let m_val = 0;
 
-            // Kontinuierliche Integration der Streckenlasten (ergibt glatte Parabeln!)
-            statics.q_profiles.forEach(p => {
-                if (x > p.start) {
-                    let w = Math.min(x, p.end) - p.start;
-                    let force = p.q * w;
-                    let lever = x - (p.start + w / 2);
-                    q_val -= force;
-                    m_val -= force * lever;
-                }
-            });
+                statics.q_profiles.forEach(p => {
+                    if (x > p.start) {
+                        let w = Math.min(x, p.end) - p.start;
+                        let force = p.q * w;
+                        let lever = x - (p.start + w / 2);
+                        q_val -= force;
+                        m_val -= force * lever;
+                    }
+                });
 
-            // Punktlasten der Stützen (Sprünge im Q-Diagramm)
-            legItems.forEach(leg => {
-                if (leg.x_m <= x) {
-                    q_val += leg.forceKN;
-                    m_val += leg.forceKN * (x - leg.x_m);
-                }
-            });
+                legItems.forEach(leg => {
+                    if (leg.x_m <= x) {
+                        q_val += leg.forceKN;
+                        m_val += leg.forceKN * (x - leg.x_m);
+                    }
+                });
 
-            Q_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: q_val });
-            M_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: m_val });
+                Q_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: q_val });
+                M_data.push({ x_px: x * SCALE_GLOBAL * 1000, val: m_val });
 
-            if (Math.abs(q_val) > maxQ) maxQ = Math.abs(q_val);
-            if (Math.abs(m_val) > maxM) maxM = Math.abs(m_val);
-        }
-
-        let niceMaxQ = getNiceMax(maxQ);
-        let niceMaxM = getNiceMax(maxM);
-
-        let maxWorldY = -Infinity;
-        legItems.forEach(item => { if (item.y + item.baseH > maxWorldY) maxWorldY = item.y + item.baseH; });
-
-        let gap = 200 * SCALE_GLOBAL / scale;
-        let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
-
-        let diagramBaseY_Q = dimY2 + (1000 * SCALE_GLOBAL / scale);
-        let diagramHeight = 350 * SCALE_GLOBAL / scale;
-        let diagramBaseY_M = diagramBaseY_Q + (1000 * SCALE_GLOBAL / scale);
-
-        let titleOffset = 50 / scale;
-        let titlePadding = 150 / scale;
-        let bottomPadding = 150 / scale;
-
-        // KORREKTUR: leftLabelPadding wurde entfernt, die Bounding-Box ist wieder exakt geometrisch
-        if (startX_px < totalMinX) totalMinX = startX_px;
-        if (endX_px > totalMaxX) totalMaxX = endX_px;
-        if (diagramBaseY_Q - diagramHeight - titlePadding < totalMinY) totalMinY = diagramBaseY_Q - diagramHeight - titlePadding;
-        if (diagramBaseY_M + diagramHeight + bottomPadding > totalMaxY) totalMaxY = diagramBaseY_M + diagramHeight + bottomPadding;
-
-        if (window.isPrintingDiagram) {
-            ctx.fillStyle = '#000';
-            ctx.font = `bold ${65 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
-            const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
-            let centerX = startX_px + (endX_px - startX_px) / 2;
-            ctx.fillText(`Schnittgrößen: Querkraft Q(x) & Biegemoment M(x)  |  ${cleanObjNr} - ${cleanFbId}`, centerX, diagramBaseY_Q - diagramHeight - titleOffset);
-        }
-
-        function drawGrid(baseY, niceMax, title, color) {
-            // Zartere vertikale Linien für die Stützen inkl. Beschriftung
-            legItems.forEach(leg => {
-                ctx.beginPath();
-                ctx.moveTo(leg.x, baseY - diagramHeight);
-                ctx.lineTo(leg.x, baseY + diagramHeight);
-                ctx.strokeStyle = window.isPrintingDiagram ? '#d1d5db' : '#cbd5e1';
-                ctx.lineWidth = 0.5 / scale;
-                ctx.setLineDash([5 / scale, 5 / scale]);
-                ctx.stroke(); ctx.setLineDash([]);
-
-                // NEU: Beschriftung des Stützenpaars (z.B. S1 & S2) am oberen Rand
-                ctx.fillStyle = '#94a3b8';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
-                ctx.font = `${30 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-                let labelText = leg.leg.isUplift ? `${leg.label} (ZUG)` : leg.label;
-                ctx.fillText(labelText, leg.x, baseY - diagramHeight - (10 / scale));
-            });
-
-            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-            ctx.font = `${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-
-            // 10 Unterteilungen pro Hälfte (ergibt ein 5er oder 10er Raster, abhängig vom Maximalwert)
-            let numSub = 10;
-            for (let i = -numSub; i <= numSub; i++) {
-                let mult = i / numSub;
-                let y = baseY - (mult * diagramHeight);
-                let val = mult * niceMax;
-                let isMain = (i % 5 === 0); // Hauptlinien bei 0%, 50%, 100%
-
-                ctx.beginPath(); ctx.moveTo(startX_px - 20 / scale, y); ctx.lineTo(endX_px + 20 / scale, y);
-
-                if (i === 0) {
-                    ctx.strokeStyle = '#475569';
-                    ctx.lineWidth = 1.2 / scale;
-                    ctx.setLineDash([]);
-                } else if (isMain) {
-                    ctx.strokeStyle = window.isPrintingDiagram ? '#9ca3af' : '#94a3b8';
-                    ctx.lineWidth = 0.8 / scale;
-                    ctx.setLineDash([]);
-                } else {
-                    ctx.strokeStyle = window.isPrintingDiagram ? '#e5e7eb' : '#e2e8f0';
-                    ctx.lineWidth = 0.4 / scale;
-                    ctx.setLineDash([4 / scale, 4 / scale]);
-                }
-                ctx.stroke(); ctx.setLineDash([]);
-
-                if (isMain && i !== 0) {
-                    ctx.fillStyle = '#64748b';
-                    let valStr = val % 1 === 0 ? val.toString() : val.toFixed(1);
-                    ctx.fillText(`${val > 0 ? '+' : ''}${valStr}`, startX_px - 40 / scale, y);
-                }
+                if (Math.abs(q_val) > maxQ) maxQ = Math.abs(q_val);
+                if (Math.abs(m_val) > maxM) maxM = Math.abs(m_val);
             }
 
-            ctx.fillStyle = color;
-            ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-            ctx.font = `bold ${45 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-            ctx.fillText(title, startX_px, baseY - diagramHeight - 20 / scale);
+            let niceMaxQ = getNiceMax(maxQ);
+            let niceMaxM = getNiceMax(maxM);
+
+            let maxWorldY = -Infinity;
+            legItems.forEach(item => { if (item.y + item.baseH > maxWorldY) maxWorldY = item.y + item.baseH; });
+
+            let gap = 200 * SCALE_GLOBAL / scale;
+            let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+
+            let diagramBaseY_Q = dimY2 + (1000 * SCALE_GLOBAL / scale);
+            let diagramHeight = 350 * SCALE_GLOBAL / scale;
+            let diagramBaseY_M = diagramBaseY_Q + (1000 * SCALE_GLOBAL / scale);
+
+            let titleOffset = 50 / scale;
+            let titlePadding = 150 / scale;
+            let bottomPadding = 150 / scale;
+
+            if (startX_px < totalMinX) totalMinX = startX_px;
+            if (endX_px > totalMaxX) totalMaxX = endX_px;
+            if (diagramBaseY_Q - diagramHeight - titlePadding < totalMinY) totalMinY = diagramBaseY_Q - diagramHeight - titlePadding;
+            if (diagramBaseY_M + diagramHeight + bottomPadding > totalMaxY) totalMaxY = diagramBaseY_M + diagramHeight + bottomPadding;
+
+            if (window.isPrintingDiagram) {
+                ctx.fillStyle = '#000';
+                ctx.font = `bold ${65 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
+                const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
+                let centerX = startX_px + (endX_px - startX_px) / 2;
+                ctx.fillText(`Schnittgrößen: Querkraft Q(x) & Biegemoment M(x)  |  ${cleanObjNr} - ${cleanFbId}`, centerX, diagramBaseY_Q - diagramHeight - titleOffset);
+            }
+
+            function drawGrid(baseY, niceMax, title, color) {
+                legItems.forEach(leg => {
+                    ctx.beginPath();
+                    ctx.moveTo(leg.x, baseY - diagramHeight);
+                    ctx.lineTo(leg.x, baseY + diagramHeight);
+                    ctx.strokeStyle = window.isPrintingDiagram ? '#d1d5db' : '#cbd5e1';
+                    ctx.lineWidth = 0.5 / scale;
+                    ctx.setLineDash([5 / scale, 5 / scale]);
+                    ctx.stroke(); ctx.setLineDash([]);
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.font = `${30 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+                    let labelText = leg.leg.isUplift ? `${leg.label} (ZUG)` : leg.label;
+                    ctx.fillText(labelText, leg.x, baseY - diagramHeight - (10 / scale));
+                });
+
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                ctx.font = `${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+
+                let numSub = 10;
+                for (let i = -numSub; i <= numSub; i++) {
+                    let mult = i / numSub;
+                    let y = baseY - (mult * diagramHeight);
+                    let val = mult * niceMax;
+                    let isMain = (i % 5 === 0);
+
+                    ctx.beginPath(); ctx.moveTo(startX_px - 20 / scale, y); ctx.lineTo(endX_px + 20 / scale, y);
+
+                    if (i === 0) {
+                        ctx.strokeStyle = '#475569';
+                        ctx.lineWidth = 1.2 / scale;
+                        ctx.setLineDash([]);
+                    } else if (isMain) {
+                        ctx.strokeStyle = window.isPrintingDiagram ? '#9ca3af' : '#94a3b8';
+                        ctx.lineWidth = 0.8 / scale;
+                        ctx.setLineDash([]);
+                    } else {
+                        ctx.strokeStyle = window.isPrintingDiagram ? '#e5e7eb' : '#e2e8f0';
+                        ctx.lineWidth = 0.4 / scale;
+                        ctx.setLineDash([4 / scale, 4 / scale]);
+                    }
+                    ctx.stroke(); ctx.setLineDash([]);
+
+                    if (isMain && i !== 0) {
+                        ctx.fillStyle = '#64748b';
+                        let valStr = val % 1 === 0 ? val.toString() : val.toFixed(1);
+                        ctx.fillText(`${val > 0 ? '+' : ''}${valStr}`, startX_px - 40 / scale, y);
+                    }
+                }
+
+                ctx.fillStyle = color;
+                ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+                ctx.font = `bold ${45 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+                ctx.fillText(title, startX_px, baseY - diagramHeight - 20 / scale);
+            }
+
+            drawGrid(diagramBaseY_Q, niceMaxQ, "Q(x) [kN]", "#3b82f6");
+            ctx.beginPath(); ctx.moveTo(Q_data[0].x_px, diagramBaseY_Q);
+            Q_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_Q - (pt.val / niceMaxQ) * diagramHeight));
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
+
+            drawGrid(diagramBaseY_M, niceMaxM, "M(x) [kNm]", "#f59e0b");
+            ctx.beginPath(); ctx.moveTo(M_data[0].x_px, diagramBaseY_M);
+            M_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_M - (pt.val / niceMaxM) * diagramHeight));
+            ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
+        });
+
+        if (totalMinX !== Infinity) {
+            window.currentDiagramBounds = { minX: totalMinX, maxX: totalMaxX, minY: totalMinY, maxY: totalMaxY };
         }
 
-        // Zeichnen der dünneren Graphen-Kurven
-        drawGrid(diagramBaseY_Q, niceMaxQ, "Q(x) [kN]", "#3b82f6");
-        ctx.beginPath(); ctx.moveTo(Q_data[0].x_px, diagramBaseY_Q);
-        Q_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_Q - (pt.val / niceMaxQ) * diagramHeight));
-        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
-
-        drawGrid(diagramBaseY_M, niceMaxM, "M(x) [kNm]", "#f59e0b");
-        ctx.beginPath(); ctx.moveTo(M_data[0].x_px, diagramBaseY_M);
-        M_data.forEach(pt => ctx.lineTo(pt.x_px, diagramBaseY_M - (pt.val / niceMaxM) * diagramHeight));
-        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.0 / scale; ctx.lineJoin = 'round'; ctx.stroke();
-    });
-
-    if (totalMinX !== Infinity) {
-        window.currentDiagramBounds = { minX: totalMinX, maxX: totalMaxX, minY: totalMinY, maxY: totalMaxY };
+        ctx.restore();
     }
-
-    ctx.restore();
-}
 
     // ==========================================
     // MODULE 10: PRINT ENGINE
     // ==========================================
-function updatePrintStaticsTable() {
-    let staticsTableHtml = '';
-    getSystems().forEach((group) => {
-        let statics = calculateSystemStatics(group);
-        if (statics && statics.legItems.length > 0) {
-            staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
-            statics.legItems.forEach(item => {
-                let valTotal = Math.abs(item.forceKN);
-                let valHalf = (valTotal / 2).toFixed(2);
-                let state = item.forceKN < 0 ? ' (ZUG)' : '';
-                // Ausgabe z.B.: S23 & S24 = 2 x 7.50 kN
-                staticsTableHtml += `${item.label} = 2 &times; ${valHalf} kN${state}<br>`;
-            });
-            staticsTableHtml += `</div>`;
-        }
-    });
-    document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
-}
+    function updatePrintStaticsTable() {
+        let staticsTableHtml = '';
+        getSystems().forEach((group) => {
+            let statics = calculateSystemStatics(group);
+            if (statics && statics.legItems.length > 0) {
+                staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
+                statics.legItems.forEach(item => {
+                    let valTotal = Math.abs(item.forceKN);
+                    let valHalf = (valTotal / 2).toFixed(2);
+                    let state = item.forceKN < 0 ? ' (ZUG)' : '';
+                    staticsTableHtml += `${item.label} = 2 &times; ${valHalf} kN${state}<br>`;
+                });
+                staticsTableHtml += `</div>`;
+            }
+        });
+        document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+    }
 
     function executePrint() {
         document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
@@ -2659,224 +2643,208 @@ function updatePrintStaticsTable() {
         }, 500);
     }
 
-function printDiagram() {
-    let toggle = document.getElementById('toggle-diagramme');
-    if (!toggle) return;
-    if (!toggle.checked) {
-        toggle.checked = true;
-        draw();
-    }
+    function printDiagram() {
+        let toggle = document.getElementById('toggle-diagramme');
+        if (!toggle) return;
+        if (!toggle.checked) {
+            toggle.checked = true;
+            draw();
+        }
 
-    if (!window.currentDiagramBounds) {
-        showNotification("Keine Anlage für das Diagramm vorhanden.");
-        return;
-    }
+        if (!window.currentDiagramBounds) {
+            showNotification("Keine Anlage für das Diagramm vorhanden.");
+            return;
+        }
 
-    updatePrintStaticsTable();
+        updatePrintStaticsTable();
 
-    window.isPrintingDiagram = true;
-    window.isPrintingActive = true;
-    window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
+        window.isPrintingDiagram = true;
+        window.isPrintingActive = true;
+        window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
 
-    let printW_px = 297 * 3.7795; // A4 Querformat
-    let printH_px = 210 * 3.7795;
+        let printW_px = 297 * 3.7795;
+        let printH_px = 210 * 3.7795;
 
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = printW_px * window.printDpr;
-    canvas.height = printH_px * window.printDpr;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = printW_px * window.printDpr;
+        canvas.height = printH_px * window.printDpr;
 
-    let b = window.currentDiagramBounds;
-    let bboxW = b.maxX - b.minX;
-    let bboxH = b.maxY - b.minY;
-    let centerX = b.minX + bboxW / 2;
-    let centerY = b.minY + bboxH / 2;
+        let b = window.currentDiagramBounds;
+        let bboxW = b.maxX - b.minX;
+        let bboxH = b.maxY - b.minY;
+        let centerX = b.minX + bboxW / 2;
 
-    // KORREKTUR: Ausreichend symmetrischer Abstand für das PDF.
-    // Die linke Beschriftung liegt nun elegant im Randbereich, das Diagramm bleibt aber optisch perfekt in der Mitte.
-    const paddingX = 180;
-    const paddingY = 80;
-    const scaleX = (printW_px - paddingX * 2) / bboxW;
-    const scaleY = (printH_px - paddingY * 2) / bboxH;
+        const paddingX = 180;
+        const paddingY = 80;
+        const scaleX = (printW_px - paddingX * 2) / bboxW;
+        const scaleY = (printH_px - paddingY * 2) / bboxH;
 
-    scale = Math.min(scaleX, scaleY);
+        scale = Math.min(scaleX, scaleY);
 
-    panX = (printW_px / 2) - (centerX * scale);
-    panY = paddingY - (b.minY * scale);
+        panX = (printW_px / 2) - (centerX * scale);
+        panY = paddingY - (b.minY * scale);
 
-    document.getElementById('print-report').style.display = 'none';
-    document.getElementById('print-header').style.display = 'none';
+        document.getElementById('print-report').style.display = 'none';
+        document.getElementById('print-header').style.display = 'none';
 
-    let tableEl = document.getElementById('print-statics-table');
-    tableEl.style.setProperty('display', 'none', 'important');
-    tableEl.style.visibility = 'hidden';
-    tableEl.style.opacity = '0';
+        let tableEl = document.getElementById('print-statics-table');
+        tableEl.style.setProperty('display', 'none', 'important');
+        tableEl.style.visibility = 'hidden';
+        tableEl.style.opacity = '0';
 
-    let printStyleEl = document.getElementById('dynamic-print-style');
-    if (!printStyleEl) {
-        printStyleEl = document.createElement('style');
-        printStyleEl.id = 'dynamic-print-style';
-        document.head.appendChild(printStyleEl);
-    }
+        let printStyleEl = document.getElementById('dynamic-print-style');
+        if (!printStyleEl) {
+            printStyleEl = document.createElement('style');
+            printStyleEl.id = 'dynamic-print-style';
+            document.head.appendChild(printStyleEl);
+        }
 
-    printStyleEl.innerHTML = `
+        printStyleEl.innerHTML = `
             @media print {
                 @page { size: A4 landscape !important; margin: 0; }
                 body #print-statics-table { display: none !important; opacity: 0 !important; visibility: hidden !important; }
             }
         `;
 
-    draw();
-
-    const originalTitle = document.title;
-    const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
-    const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
-    document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
-
-    setTimeout(() => {
-        window.print();
-
-        document.title = originalTitle;
-        window.isPrintingDiagram = false;
-        window.isPrintingActive = false;
-
-        document.getElementById('print-report').style.display = '';
-        document.getElementById('print-header').style.display = '';
-
-        tableEl.style.display = '';
-        tableEl.style.visibility = 'visible';
-        tableEl.style.opacity = '1';
-
-        canvas.width = rect.width * (window.devicePixelRatio || 1);
-        canvas.height = rect.height * (window.devicePixelRatio || 1);
-        smartCenterView(false);
         draw();
-    }, 500);
-}
+
+        const originalTitle = document.title;
+        const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
+        const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
+        document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
+
+        setTimeout(() => {
+            window.print();
+
+            document.title = originalTitle;
+            window.isPrintingDiagram = false;
+            window.isPrintingActive = false;
+
+            document.getElementById('print-report').style.display = '';
+            document.getElementById('print-header').style.display = '';
+
+            tableEl.style.display = '';
+            tableEl.style.visibility = 'visible';
+            tableEl.style.opacity = '1';
+
+            canvas.width = rect.width * (window.devicePixelRatio || 1);
+            canvas.height = rect.height * (window.devicePixelRatio || 1);
+            smartCenterView(false);
+            draw();
+        }, 500);
+    }
 
     // ==========================================
     // MODULE 11: MAIN DRAW LOOP
     // ==========================================
-function renderReactionForces() {
-    const toggle = document.getElementById('toggle-forces');
-    if (!toggle || !toggle.checked) return;
+    function renderReactionForces() {
+        const toggle = document.getElementById('toggle-forces');
+        if (!toggle || !toggle.checked) return;
 
-    let allLegData = [];
-    getSystems().forEach(group => {
-        let statics = calculateSystemStatics(group);
-        if (statics) allLegData.push(...statics.legItems);
-    });
+        let allLegData = [];
+        getSystems().forEach(group => {
+            let statics = calculateSystemStatics(group);
+            if (statics) allLegData.push(...statics.legItems);
+        });
 
-    if (allLegData.length === 0) return;
-    let maxGlobalF = 0;
-    let maxWorldY = -Infinity;
-    let globalHasUplift = false; // --- NEU ---
+        if (allLegData.length === 0) return;
+        let maxGlobalF = 0;
+        let maxWorldY = -Infinity;
+        let globalHasUplift = false;
 
-    allLegData.forEach(item => {
-        if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
-        if (item.forceKN < -0.1) globalHasUplift = true; // --- NEU ---
+        allLegData.forEach(item => {
+            if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
+            if (item.forceKN < -0.1) globalHasUplift = true;
 
-        let yWithBase = item.y + item.baseH;
-        if (yWithBase > maxWorldY) maxWorldY = yWithBase;
-    });
-    if (maxGlobalF === 0) maxGlobalF = 1;
+            let yWithBase = item.y + item.baseH;
+            if (yWithBase > maxWorldY) maxWorldY = yWithBase;
+        });
+        if (maxGlobalF === 0) maxGlobalF = 1;
 
-    let gap = 200 * SCALE_GLOBAL / scale;
-    let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
-    // arrowTailY ist die untere Kante der vertikalen gestrichelten Linie
-    let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
+        let gap = 200 * SCALE_GLOBAL / scale;
+        let dimY2 = maxWorldY + gap + (150 * SCALE_GLOBAL / scale);
+        let arrowTailY = dimY2 + 100 * SCALE_GLOBAL / scale;
 
-    ctx.save();
-    ctx.lineWidth = 1.5 / scale;
-
-    allLegData.forEach(item => {
-        let isUplift = item.forceKN < 0;
-        let absF = Math.abs(item.forceKN);
-        let ratio = absF / maxGlobalF;
-        let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
-        let lx = item.x; let ly = item.y + item.baseH;
-
-        ctx.strokeStyle = color; ctx.fillStyle = color;
-        let ahW = 8 / scale, ahH = 16 / scale;
-
-        // 1. Vertikale gestrichelte Linie zeichnen
-        ctx.beginPath();
-        ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
-        ctx.moveTo(lx, arrowTailY);
-        ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // 2. Pfeilspitze oben am Fuß zeichnen
-        ctx.beginPath();
-        if (isUplift) {
-            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
-        } else {
-            ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
-        }
-
-        // --- NEUE TEXT- UND KÄSTCHEN-LOGIK ---
-        let stateText = isUplift ? ' (ZUG)' : '';
-        let labelStr = item.label; // z.B. "S1 & S2"
-        let forceStr = `2× ${(absF / 2).toFixed(1)} kN${stateText}`; // z.B. "2× 14.5 kN"
-
-        // 3. Kästchen für die Stützenbezeichnung (S1 & S2) am unteren Ende der Linie
         ctx.save();
-        ctx.font = `bold ${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-        let textMetrics = ctx.measureText(labelStr);
-        let boxW = textMetrics.width + (40 * SCALE_GLOBAL / scale); // Textbreite + Padding
-        let boxH = 60 * SCALE_GLOBAL / scale;
-        let boxX = lx - boxW / 2;
-        let boxY = arrowTailY; // Rahmen beginnt exakt an der Unterkante der Hilfslinie
+        ctx.lineWidth = 1.5 / scale;
 
-        // Hintergrund für Lesbarkeit (weiß auf Druck, leicht hell auf Canvas)
-        ctx.fillStyle = window.isPrintingActive ? '#ffffff' : '#f4f6f8';
-        ctx.fillRect(boxX, boxY, boxW, boxH);
+        allLegData.forEach(item => {
+            let isUplift = item.forceKN < 0;
+            let absF = Math.abs(item.forceKN);
+            let ratio = absF / maxGlobalF;
+            let color = isUplift ? '#ef4444' : `hsl(${(1 - ratio) * 120}, 80%, 50%)`;
+            let lx = item.x; let ly = item.y + item.baseH;
 
-        // Rahmen
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.0 / scale;
-        ctx.strokeRect(boxX, boxY, boxW, boxH);
+            ctx.strokeStyle = color; ctx.fillStyle = color;
+            let ahW = 8 / scale, ahH = 16 / scale;
 
-        // Text im Rahmen
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(labelStr, lx, boxY + boxH / 2);
-        ctx.restore();
+            ctx.beginPath();
+            ctx.setLineDash([20 * SCALE_GLOBAL / scale, 15 * SCALE_GLOBAL / scale]);
+            ctx.moveTo(lx, arrowTailY);
+            ctx.lineTo(lx, isUplift ? (ly - ahH) : (ly + ahH));
+            ctx.stroke();
+            ctx.setLineDash([]);
 
-        // 4. Kraftangabe vertikal an der Linie ausrichten
-        ctx.save();
-        ctx.translate(lx - (20 * SCALE_GLOBAL / scale), arrowTailY - (20 * SCALE_GLOBAL / scale)); // Leicht links der Linie, unten angesetzt
-        ctx.rotate(-Math.PI / 2); // 90 Grad nach oben drehen
-        ctx.textAlign = 'left';   // Linksbündig, damit es von unten nach oben wächst
-        ctx.textBaseline = 'bottom';
-        ctx.fillStyle = color;
-        ctx.font = `${45 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
-        ctx.fillText(forceStr, 0, 0);
-        ctx.restore();
-    });
-
-    // --- NEUE WARNUNGS-UI LOGIK ---
-    const indicator = document.getElementById('uplift-warning-indicator');
-    if (indicator) {
-        if (globalHasUplift) {
-            // Indikator ausblenden, während man zieht (damit er nicht stört)
-            indicator.style.display = (!isDraggingCanvas && !draggedElement) ? 'flex' : 'none';
-
-            // Toast NUR feuern, wenn wir es noch nicht getan haben UND die Maus frei ist
-            if (!window.hasShownUpliftToast && !isDraggingCanvas && !draggedElement) {
-                showNotification("Statische Verspannung: Abhebende Stütze (rot markiert) erkannt!");
-                window.hasShownUpliftToast = true; // Sperrt weiteres Spammen
+            ctx.beginPath();
+            if (isUplift) {
+                ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly - ahH); ctx.lineTo(lx + ahW, ly - ahH); ctx.closePath(); ctx.fill();
+            } else {
+                ctx.moveTo(lx, ly); ctx.lineTo(lx - ahW, ly + ahH); ctx.lineTo(lx + ahW, ly + ahH); ctx.closePath(); ctx.fill();
             }
-        } else {
-            // Reset NUR dann, wenn das Problem auch wirklich behoben wurde (kein Uplift mehr)
-            indicator.style.display = 'none';
-            window.hasShownUpliftToast = false;
-        }
-    }
 
-    ctx.restore();
-}
+            let stateText = isUplift ? ' (ZUG)' : '';
+            let labelStr = item.label;
+            let forceStr = `2× ${(absF / 2).toFixed(1)} kN${stateText}`;
+
+            ctx.save();
+            ctx.font = `bold ${35 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+            let textMetrics = ctx.measureText(labelStr);
+            let boxW = textMetrics.width + (40 * SCALE_GLOBAL / scale);
+            let boxH = 60 * SCALE_GLOBAL / scale;
+            let boxX = lx - boxW / 2;
+            let boxY = arrowTailY;
+
+            ctx.fillStyle = window.isPrintingActive ? '#ffffff' : '#f4f6f8';
+            ctx.fillRect(boxX, boxY, boxW, boxH);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.0 / scale;
+            ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(labelStr, lx, boxY + boxH / 2);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(lx - (20 * SCALE_GLOBAL / scale), arrowTailY - (20 * SCALE_GLOBAL / scale));
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = color;
+            ctx.font = `${45 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+            ctx.fillText(forceStr, 0, 0);
+            ctx.restore();
+        });
+
+        const indicator = document.getElementById('uplift-warning-indicator');
+        if (indicator) {
+            if (globalHasUplift) {
+                indicator.style.display = (!isDraggingCanvas && !draggedElement) ? 'flex' : 'none';
+
+                if (!window.hasShownUpliftToast && !isDraggingCanvas && !draggedElement) {
+                    showNotification("Statische Verspannung: Abhebende Stütze (rot markiert) erkannt!");
+                    window.hasShownUpliftToast = true;
+                }
+            } else {
+                indicator.style.display = 'none';
+                window.hasShownUpliftToast = false;
+            }
+        }
+
+        ctx.restore();
+    }
 
     function draw() {
         const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
@@ -2969,7 +2937,6 @@ function renderReactionForces() {
             const s = el.scaleFactor;
             const st = el.parts.stuetze, te = el.parts.teleskop, pl = el.parts.platte;
 
-            // --- NEU: FARB-WECHSLER ---
             const isRed = el.isUplift && el.redParts;
             const stImg = isRed ? el.redParts.stuetze : st.img;
             const teImg = isRed ? el.redParts.teleskop : te.img;
@@ -2982,7 +2949,6 @@ function renderReactionForces() {
 
             const teX = el.x + (stW / 2) - (teW / 2); const teY = el.y + (st.height * 0.1) * s + extH;
 
-            // Zeichne mit den selektierten (evtl. roten) Images
             ctx.drawImage(teImg, teX, teY, teW, teH); ctx.drawImage(stImg, el.x, el.y, stW, stH);
 
             let teConnX = teW / 2, teConnY = teH;
@@ -2997,13 +2963,12 @@ function renderReactionForces() {
                 baseH = (el.baseHeight || 150) * s; baseW = 400 * s;
                 let sW = 400 * SCALE_GLOBAL; let sH = (el.baseHeight || 150) * SCALE_GLOBAL;
 
-                // Sockel färbt sich ebenfalls bedrohlich ein
                 ctx.fillStyle = isRed ? '#fca5a5' : '#94a3b8';
                 ctx.strokeStyle = isRed ? '#ef4444' : '#475569';
                 ctx.lineWidth = (isRed ? 3.0 : 1.5) / scale;
                 ctx.fillRect(-sW / 2, (plH - (topConn.y * s)), sW, sH); ctx.strokeRect(-sW / 2, (plH - (topConn.y * s)), sW, sH);
             } else if (el.baseType === 'heb120' && el.baseData) {
-                let activeBaseImg = (isRed && el.redBaseImg) ? el.redBaseImg : el.baseImg; // HEB 120 wird rot
+                let activeBaseImg = (isRed && el.redBaseImg) ? el.redBaseImg : el.baseImg;
                 baseH = el.baseData.height * s; baseW = el.baseData.width * s;
                 let sW = el.baseData.width * SCALE_GLOBAL; let sH = el.baseData.height * SCALE_GLOBAL;
                 let cX = sW / 2, cY = 0;
@@ -3012,12 +2977,10 @@ function renderReactionForces() {
             }
             ctx.restore();
 
-            // Box-Abmessungen berechnen (inklusive Unterbau)
             let boxH = ((teY + teH + (plH - (topConn.y * s))) - el.y) + baseH;
             let boxW = Math.max(stW, baseW);
             let boxX = el.x + stW / 2 - boxW / 2;
 
-            // Standard Hover/Selection Rahmen (präzise ausgerichtet)
             if (selectedElements.includes(el)) {
                 ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5 / scale; ctx.setLineDash([5 / scale, 5 / scale]);
                 ctx.strokeRect(boxX - 5 / scale, el.y - 5 / scale, boxW + 10 / scale, boxH + 10 / scale);
@@ -3029,10 +2992,9 @@ function renderReactionForces() {
                 ctx.fillStyle = '#f97316'; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / scale; ctx.stroke();
             }
 
-            // NEU: Stark erweiterte Bounding Box bei gehaltener Alt-Taste einblenden
             if (isAltDown) {
-                let altPad = 300 * s; // Muss exakt mit dem Pad in getElementAtPosition übereinstimmen
-                ctx.fillStyle = 'rgba(234, 179, 8, 0.1)'; // Sehr dezentes Gelb als Hilfsindikator
+                let altPad = 300 * s;
+                ctx.fillStyle = 'rgba(234, 179, 8, 0.1)';
                 ctx.strokeStyle = 'rgba(234, 179, 8, 0.6)';
                 ctx.lineWidth = 2 / scale;
                 ctx.setLineDash([8 / scale, 8 / scale]);
