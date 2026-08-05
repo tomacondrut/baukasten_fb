@@ -9,6 +9,9 @@
          FEHLER 1: Reaktionskraft-Pfeile waren optisch nach unten versetzt, da die Stütze in draw() durch eine doppelte Skalierung ((stH * 0.1) * s) zu weit oben gezeichnet wurde.
          FEHLER 2: Browser-native alert()-Popups wirkten unprofessionell und blockierten den Workflow.
          LÖSUNG: Doppelte Skalierung in draw() entfernt und ein sauberes, in-app Toast-Benachrichtigungssystem integriert. -->
+    <!-- [BREADCRUMB: V25 - FIX GROUP SCATTERING ON DRAG]
+         FEHLER: Beim Ziehen von Baugruppen aus der Mitte der Kette heraus versprang die Struktur, da das gezogene Element nicht der Root-Node der Gruppe war.
+         LÖSUNG: Isolierte Re-Rooting Logik im mousedown-Event eingefügt. Macht das gegriffene Element temporär zum sauberen Parent der restlichen gezogenen Gruppe, ohne die x/y Koordinaten zu zerstören. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Förderband Baukasten Pro</title>
@@ -108,11 +111,14 @@
             background-color: #334155;
             border: 1px dashed #475569;
             border-radius: 6px;
-            padding: 12px;
+            padding: 10px 12px;
             margin-bottom: 10px;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
             .item-card:hover {
@@ -126,7 +132,17 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex: 1;
             }
+
+        .item-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            opacity: 0.9;
+            /* Diese Zeile macht aus den schwarzen Linien strahlendes Weiß: */
+            filter: brightness(0) invert(1);
+        }
 
         .gear-btn, .action-icon {
             font-size: 1.1rem;
@@ -695,25 +711,31 @@
 
         <div class="section-title">Bandelemente</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '2480.svg')">
+            <img id="icon-2480" class="item-icon" src="">
             <h3>Bandelement 2480 <span class="gear-btn" onclick="openSettings('2480.svg')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '3720.svg')">
+            <img id="icon-3720" class="item-icon" src="">
             <h3>Bandelement 3720 <span class="gear-btn" onclick="openSettings('3720.svg')">⚙️</span></h3>
         </div>
 
         <div class="section-title">Peripherie & Knick</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addKnickModule()">
+            <img id="icon-knick" class="item-icon" src="">
             <h3>Knick-Modul <span class="gear-btn" onclick="openSettings('knick')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'antriebstation.svg')">
+            <img id="icon-antrieb" class="item-icon" src="">
             <h3>Antriebsstation <span class="gear-btn" onclick="openSettings('antriebstation.svg')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'Spannstation.svg')">
+            <img id="icon-spann" class="item-icon" src="">
             <h3>Spannstation <span class="gear-btn" onclick="openSettings('Spannstation.svg')">⚙️</span></h3>
         </div>
         <div class="section-title">Stützen</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addStuetzfuss()">
-            <h3>Stützfuß (Teleskop) <span class="gear-btn" onclick="openSettings('assembly_leg')">⚙️</span></h3>
+            <img id="icon-stuetze" class="item-icon" src="">
+            <h3>Stützfuß <span class="gear-btn" onclick="openSettings('assembly_leg')">⚙️</span></h3>
         </div>
     </div>
 
@@ -749,7 +771,11 @@
             <div id="leg-controls" style="display: none;" class="control-group"><label>Hub:</label><input type="range" id="slider-extension" min="0" max="250" value="0" oninput="updateLegExtension(this.value)"><span id="val-extension" style="width: 40px;">0mm</span></div>
             <div id="leg-base-controls" style="display: none;" class="control-group"><label>Unterbau:</label><select id="select-base-type" onchange="updateLegBase(this.value)"><option value="none">Keiner</option><option value="sockel">Betonsockel</option><option value="heb120">HEB 120 Profil</option></select></div>
             <div id="leg-sockel-controls" style="display: none;" class="control-group"><label>Höhe:</label><input type="range" id="slider-sockel-height" min="150" max="400" value="150" step="10" oninput="updateSockelHeight(this.value)"><span id="val-sockel-height" style="width: 45px;">150mm</span></div>
-            <div id="knick-controls" style="display: none;" class="control-group"><label>Knick-Winkel:</label><input type="range" id="slider-knick-angle" min="-4.0" max="10.0" step="0.5" value="8.0" oninput="updateKnickAngle(this.value)"><span id="val-knick-angle">8.0°</span></div>
+            <div id="knick-controls" style="display: none;" class="control-group">
+                <label>Knick-Winkel:</label>
+                <input type="range" id="slider-knick-angle" min="-4.0" max="12.0" step="0.5" value="8.0" style="width: 160px; cursor: ew-resize;" oninput="updateKnickAngle(this.value)">
+                <span id="val-knick-angle" style="width: 45px; display: inline-block; text-align: right;">8.0°</span>
+            </div>
             <div id="band-angle-controls" style="display: none;" class="control-group"><label>Neigung Bandreihe:</label><input type="range" id="slider-band-angle" min="-20" max="20" step="0.5" value="0" oninput="updateBandChainAngle(this.value)"><span id="val-band-angle">0°</span></div>
             <button id="btn-mirror" class="btn btn-action" style="display:none;" onclick="mirrorSelected()">↔ Spiegeln</button>
             <button id="btn-array" class="btn btn-action" style="display:none;" onclick="openArrayModal()">⋮⋮⋮ Anordnung</button>
@@ -805,6 +831,12 @@
 
                 <label style="margin-top: 15px;">Start-Bezeichnung (z.B. S23 oder F1)</label>
                 <input type="text" id="settings-leg-name-input" placeholder="F1">
+
+                <label style="margin-top: 15px;">Nummerierungsrichtung</label>
+                <select id="settings-leg-dir-input" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; margin-bottom: 15px; outline: none; cursor: pointer;">
+                    <option value="ltr">Von links nach rechts</option>
+                    <option value="rtl">Von rechts nach links</option>
+                </select>
             </div>
 
             <label style="margin-top: 15px;">Farbe</label>
@@ -989,6 +1021,8 @@
             document.getElementById('settings-spring-controls').style.display = 'block';
             document.getElementById('settings-k-input').value = set.spring_k;
             document.getElementById('settings-leg-name-input').value = set.startName || 'F1';
+            // NEU: Richtung laden
+            document.getElementById('settings-leg-dir-input').value = set.numberingDirection || 'ltr';
         } else {
             document.getElementById('settings-physics-controls').style.display = 'block';
             document.getElementById('settings-spring-controls').style.display = 'none';
@@ -1011,6 +1045,8 @@
         if (currentSettingKey === 'assembly_leg') {
             set.spring_k = parseFloat(document.getElementById('settings-k-input').value) || 10000;
             set.startName = document.getElementById('settings-leg-name-input').value.trim() || 'F1';
+            // NEU: Richtung speichern
+            set.numberingDirection = document.getElementById('settings-leg-dir-input').value || 'ltr';
         } else {
             set.e_mod = parseFloat(document.getElementById('settings-e-input').value) || 210000;
             set.i_y = parseFloat(document.getElementById('settings-i-input').value) || 3690;
@@ -1831,215 +1867,263 @@
         draw();
     }
 
-    canvas.addEventListener('mousedown', (e) => {
-        canvas.focus();
-        const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
-        if (hit) {
-            if (e.ctrlKey || e.metaKey) toggleSelect(hit);
-            else if (!selectedElements.includes(hit)) selectSingle(hit);
-            draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
+canvas.addEventListener('mousedown', (e) => {
+    canvas.focus();
+    const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
+    if (hit) {
+        if (e.ctrlKey || e.metaKey) toggleSelect(hit);
+        else if (!selectedElements.includes(hit)) selectSingle(hit);
+        draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
 
-            hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
-            hit._hasJumpedToMouse = false;
+        hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
+        hit._hasJumpedToMouse = false;
 
-            dragGroup.forEach(el => {
-                el._dragFreeX = (typeof el._dragFreeX === 'number' && !isNaN(el._dragFreeX)) ? el._dragFreeX : el.x;
-                el._dragFreeY = (typeof el._dragFreeY === 'number' && !isNaN(el._dragFreeY)) ? el._dragFreeY : el.y;
-            });
+        // --- RE-ROOTING FIX: Bisherigen globalen Winkel beibehalten ---
+        if (hit.type !== 'assembly_leg') {
+            let curr = hit;
+            let path = [];
+            while (curr && dragGroup.includes(curr)) {
+                path.push(curr);
+                curr = curr.parent;
+            }
 
-        } else {
-            if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
-            isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
-        }
-        lastMouseWorld = getCanvasCoords(e); draw();
-    });
+            if (path.length > 1) {
+                // WICHTIG: Echten globalen Winkel des gegriffenen Elements VOR Umbau holen
+                let currentGlobalAngle = getGlobalAngle(hit);
 
-canvas.addEventListener('mousemove', (e) => {
-    if (draggedElement && dragGroup.length > 0) {
-        let currentMouseWorld = getCanvasCoords(e);
-        let worldDx = currentMouseWorld.x - lastMouseWorld.x;
-        let worldDy = currentMouseWorld.y - lastMouseWorld.y;
+                let oldBounds = getElementWorldBounds(hit);
+                let oldCx = oldBounds.minX + oldBounds.width / 2;
+                let oldCy = oldBounds.minY + oldBounds.height / 2;
 
-        // 1. Fremdes Parent temporär lösen, während gezogen wird
-        if (draggedElement.parent && !dragGroup.includes(draggedElement.parent)) {
-            draggedElement.parent = null;
-        }
+                for (let i = path.length - 1; i > 0; i--) {
+                    path[i].parent = path[i - 1];
+                }
+                hit.parent = null;
 
-        // 2. Einmaliger Sprung zum Mauszeiger NUR für Stützen
-        if (draggedElement.type === 'assembly_leg') {
-            if (draggedElement._wasAnchoredOnPickup && !draggedElement._hasJumpedToMouse) {
-                const s = draggedElement.scaleFactor;
-                let shiftX = currentMouseWorld.x - (draggedElement._dragFreeX + draggedElement.connector.x * s);
-                let shiftY = currentMouseWorld.y - (draggedElement._dragFreeY + draggedElement.connector.y * s);
+                // Den ermittelten echten Winkel nun als neuen Basis-Winkel (chainAngle) setzen
+                hit.chainAngle = currentGlobalAngle;
+                path.forEach(node => { if (node !== hit) node.chainAngle = 0; });
 
-                dragGroup.forEach(el => {
-                    el._dragFreeX += shiftX;
-                    el._dragFreeY += shiftY;
-                });
-                draggedElement._hasJumpedToMouse = true;
+                recalculateChainAlignment(hit);
+
+                let newBounds = getElementWorldBounds(hit);
+                let newCx = newBounds.minX + newBounds.width / 2;
+                let newCy = newBounds.minY + newBounds.height / 2;
+
+                let jumpX = oldCx - newCx;
+                let jumpY = oldCy - newCy;
+
+                if (currentGlobalAngle !== 0) {
+                    const rad = (currentGlobalAngle * Math.PI) / 180;
+                    let localJumpX = jumpX * Math.cos(rad) - jumpY * Math.sin(rad);
+                    let localJumpY = jumpX * Math.sin(rad) + jumpY * Math.cos(rad);
+                    dragGroup.forEach(el => { el.x += localJumpX; el.y += localJumpY; });
+                } else {
+                    dragGroup.forEach(el => { el.x += jumpX; el.y += jumpY; });
+                }
+                recalculateChainAlignment(hit);
             }
         }
-
-        // 3. Echte Mausbewegung auf die "freien" Geister-Koordinaten des HAUPT-ELEMENTS addieren
-        let localDx = worldDx, localDy = worldDy;
-        if (draggedElement.type !== 'assembly_leg') {
-            const angle = getChainAngle(draggedElement);
-            if (angle !== 0 && !draggedElement.parent) {
-                const rad = (angle * Math.PI) / 180;
-                localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad);
-                localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
-            }
-        }
-
-        // KORREKTUR: Relativen Offset aller Gruppen-Elemente zum Haupt-Element beibehalten!
-        let mainOldX = draggedElement._dragFreeX;
-        let mainOldY = draggedElement._dragFreeY;
-
-        draggedElement._dragFreeX += localDx;
-        draggedElement._dragFreeY += localDy;
-        draggedElement.x = draggedElement._dragFreeX;
-        draggedElement.y = draggedElement._dragFreeY;
-
-        let shiftGroupX = draggedElement._dragFreeX - mainOldX;
-        let shiftGroupY = draggedElement._dragFreeY - mainOldY;
+        // --------------------------------------------------
 
         dragGroup.forEach(el => {
-            if (el !== draggedElement) {
-                el._dragFreeX += shiftGroupX;
-                el._dragFreeY += shiftGroupY;
-                el.x = el._dragFreeX;
-                el.y = el._dragFreeY;
-            }
+            el._dragFreeX = (typeof el._dragFreeX === 'number' && !isNaN(el._dragFreeX)) ? el._dragFreeX : el.x;
+            el._dragFreeY = (typeof el._dragFreeY === 'number' && !isNaN(el._dragFreeY)) ? el._dragFreeY : el.y;
         });
 
-        // Flansch-Geometrie für Unter-Baugruppen starr beibehalten
-        if (draggedElement.type !== 'assembly_leg') {
-            recalculateChainAlignment(draggedElement);
-            // Synchronisiere _dragFree nach dem Ausrichten der Kette
-            dragGroup.forEach(el => {
-                el._dragFreeX = el.x;
-                el._dragFreeY = el.y;
-            });
-        }
+    } else {
+        if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
+        isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
+    }
+    lastMouseWorld = getCanvasCoords(e); draw();
+});
 
-        lastMouseWorld = currentMouseWorld;
+    canvas.addEventListener('mousemove', (e) => {
+        if (draggedElement && dragGroup.length > 0) {
+            let currentMouseWorld = getCanvasCoords(e);
+            let worldDx = currentMouseWorld.x - lastMouseWorld.x;
+            let worldDy = currentMouseWorld.y - lastMouseWorld.y;
 
-        if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
-            draggedElement.ignoreSnapUntilMove = false;
-            draggedElement.isDetached = false;
-        }
+            // 1. Fremdes Parent temporär lösen, während gezogen wird
+            if (draggedElement.parent && !dragGroup.includes(draggedElement.parent)) {
+                draggedElement.parent = null;
+            }
 
-        // 4. Vereinigte Snap-Logik für alle Bauteile
-        const SNAP = 25 / scale;
-        let snappedParent = null;
-
-        if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached) {
-
-            // --- A) STÜTZEN-SNAP ---
+            // 2. Einmaliger Sprung zum Mauszeiger NUR für Stützen
             if (draggedElement.type === 'assembly_leg') {
-                const legConnWorld = getLegConnectorWorldPos(draggedElement);
-                let bestLegSnap = null;
-                let minLegSnapDist = SNAP;
+                if (draggedElement._wasAnchoredOnPickup && !draggedElement._hasJumpedToMouse) {
+                    const s = draggedElement.scaleFactor;
+                    let shiftX = currentMouseWorld.x - (draggedElement._dragFreeX + draggedElement.connector.x * s);
+                    let shiftY = currentMouseWorld.y - (draggedElement._dragFreeY + draggedElement.connector.y * s);
 
-                elements.forEach(other => {
-                    if (!dragGroup.includes(other) && other.connectors) {
-                        const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
-                        otherLegConnectors.forEach(c => {
-                            if (isConnectorOccupied(other, c)) return;
-                            const bandConnWorld = getConnectorWorldPos(other, c);
-                            let dist = Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y);
-
-                            if (dist < minLegSnapDist) {
-                                minLegSnapDist = dist;
-                                bestLegSnap = { other, c };
-                            }
-                        });
-                    }
-                });
-
-                if (bestLegSnap) {
-                    snappedParent = bestLegSnap.other;
-                    let targetOff = getLocalFlangeOffset(bestLegSnap.other, bestLegSnap.c);
-                    let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
-                    let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
-
-                    let shiftX = idealX - draggedElement.x;
-                    let shiftY = idealY - draggedElement.y;
-                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                    dragGroup.forEach(el => {
+                        el._dragFreeX += shiftX;
+                        el._dragFreeY += shiftY;
+                    });
+                    draggedElement._hasJumpedToMouse = true;
                 }
+            }
 
-                // --- B) BÄNDER / KNICKE / ENDSTATIONEN SNAP ---
-            } else if (draggedElement.connectors) {
-                const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
-                let bestSnap = null, minSnapDist = SNAP;
+            // 3. Echte Mausbewegung auf die "freien" Geister-Koordinaten des HAUPT-ELEMENTS addieren
+            let localDx = worldDx, localDy = worldDy;
+            if (draggedElement.type !== 'assembly_leg') {
+                const angle = getChainAngle(draggedElement);
+                if (angle !== 0 && !draggedElement.parent) {
+                    const rad = (angle * Math.PI) / 180;
+                    localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad);
+                    localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
+                }
+            }
 
-                myAllFlanges.forEach(myConn => {
-                    let myIsLeft = isLeftConnector(draggedElement, myConn);
-                    let myWorld = getConnectorWorldPos(draggedElement, myConn);
+            // KORREKTUR: Relativen Offset aller Gruppen-Elemente zum Haupt-Element beibehalten!
+            let mainOldX = draggedElement._dragFreeX;
+            let mainOldY = draggedElement._dragFreeY;
+
+            draggedElement._dragFreeX += localDx;
+            draggedElement._dragFreeY += localDy;
+            draggedElement.x = draggedElement._dragFreeX;
+            draggedElement.y = draggedElement._dragFreeY;
+
+            let shiftGroupX = draggedElement._dragFreeX - mainOldX;
+            let shiftGroupY = draggedElement._dragFreeY - mainOldY;
+
+            dragGroup.forEach(el => {
+                if (el !== draggedElement) {
+                    el._dragFreeX += shiftGroupX;
+                    el._dragFreeY += shiftGroupY;
+                    el.x = el._dragFreeX;
+                    el.y = el._dragFreeY;
+                }
+            });
+
+            // Flansch-Geometrie für Unter-Baugruppen starr beibehalten
+            if (draggedElement.type !== 'assembly_leg') {
+                recalculateChainAlignment(draggedElement);
+                // Synchronisiere _dragFree nach dem Ausrichten der Kette
+                dragGroup.forEach(el => {
+                    el._dragFreeX = el.x;
+                    el._dragFreeY = el.y;
+                });
+            }
+
+            lastMouseWorld = currentMouseWorld;
+
+            if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
+                draggedElement.ignoreSnapUntilMove = false;
+                draggedElement.isDetached = false;
+            }
+
+            // 4. Vereinigte Snap-Logik für alle Bauteile
+            const SNAP = 25 / scale;
+            let snappedParent = null;
+
+            if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached) {
+
+                // --- A) STÜTZEN-SNAP ---
+                if (draggedElement.type === 'assembly_leg') {
+                    const legConnWorld = getLegConnectorWorldPos(draggedElement);
+                    let bestLegSnap = null;
+                    let minLegSnapDist = SNAP;
 
                     elements.forEach(other => {
-                        if (dragGroup.includes(other) || other.isDetached) return;
+                        if (!dragGroup.includes(other) && other.connectors) {
+                            const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
+                            otherLegConnectors.forEach(c => {
+                                if (isConnectorOccupied(other, c)) return;
+                                const bandConnWorld = getConnectorWorldPos(other, c);
+                                let dist = Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y);
 
-                        if ((draggedElement.type === 'knick' && other.type === 'end_unit') ||
-                            (draggedElement.type === 'end_unit' && other.type === 'knick')) {
+                                if (dist < minLegSnapDist) {
+                                    minLegSnapDist = dist;
+                                    bestLegSnap = { other, c };
+                                }
+                            });
+                        }
+                    });
 
-                            const checkFlanges = (other.connectors || []).filter(c => c.type === 'flange');
-                            checkFlanges.forEach(otherConn => {
-                                let otherPos = getConnectorWorldPos(other, otherConn);
-                                if (Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y) < SNAP) {
-                                    let now = Date.now();
-                                    if (!window.lastKnickWarning || now - window.lastKnickWarning > 4000) {
-                                        window.lastKnickWarning = now;
-                                        showNotification("Konstruktionsvorgabe: Antriebs- und Spannstationen dürfen nicht direkt an Knick-Modulen angeflanscht werden.");
+                    if (bestLegSnap) {
+                        snappedParent = bestLegSnap.other;
+                        let targetOff = getLocalFlangeOffset(bestLegSnap.other, bestLegSnap.c);
+                        let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
+                        let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
+
+                        let shiftX = idealX - draggedElement.x;
+                        let shiftY = idealY - draggedElement.y;
+                        dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                    }
+
+                // --- B) BÄNDER / KNICKE / ENDSTATIONEN SNAP ---
+                } else if (draggedElement.connectors) {
+                    const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
+                    let bestSnap = null, minSnapDist = SNAP;
+
+                    myAllFlanges.forEach(myConn => {
+                        let myIsLeft = isLeftConnector(draggedElement, myConn);
+                        let myWorld = getConnectorWorldPos(draggedElement, myConn);
+
+                        elements.forEach(other => {
+                            if (dragGroup.includes(other) || other.isDetached) return;
+
+                            if ((draggedElement.type === 'knick' && other.type === 'end_unit') ||
+                                (draggedElement.type === 'end_unit' && other.type === 'knick')) {
+
+                                const checkFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                                checkFlanges.forEach(otherConn => {
+                                    let otherPos = getConnectorWorldPos(other, otherConn);
+                                    if (Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y) < SNAP) {
+                                        let now = Date.now();
+                                        if (!window.lastKnickWarning || now - window.lastKnickWarning > 4000) {
+                                            window.lastKnickWarning = now;
+                                            showNotification("Konstruktionsvorgabe: Antriebs- und Spannstationen dürfen nicht direkt an Knick-Modulen angeflanscht werden.");
+                                        }
+                                    }
+                                });
+                                return;
+                            }
+
+                            const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                            otherAllFlanges.forEach(otherConn => {
+                                if (isConnectorOccupied(other, otherConn)) return;
+                                let otherIsLeft = isLeftConnector(other, otherConn);
+                                if (myIsLeft !== otherIsLeft) {
+                                    let otherPos = getConnectorWorldPos(other, otherConn);
+                                    let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
+                                    if (dist < minSnapDist) {
+                                        minSnapDist = dist;
+                                        bestSnap = { other, myConn, otherConn };
                                     }
                                 }
                             });
-                            return;
-                        }
-
-                        const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
-                        otherAllFlanges.forEach(otherConn => {
-                            if (isConnectorOccupied(other, otherConn)) return;
-                            let otherIsLeft = isLeftConnector(other, otherConn);
-                            if (myIsLeft !== otherIsLeft) {
-                                let otherPos = getConnectorWorldPos(other, otherConn);
-                                let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
-                                if (dist < minSnapDist) {
-                                    minSnapDist = dist;
-                                    bestSnap = { other, myConn, otherConn };
-                                }
-                            }
                         });
                     });
-                });
 
-                if (bestSnap) {
-                    let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn);
-                    let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
-                    let idealX = bestSnap.other.x + otherOff.x - myOff.x;
-                    let idealY = bestSnap.other.y + otherOff.y - myOff.y;
+                    if (bestSnap) {
+                        let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn);
+                        let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
+                        let idealX = bestSnap.other.x + otherOff.x - myOff.x;
+                        let idealY = bestSnap.other.y + otherOff.y - myOff.y;
 
-                    let shiftX = idealX - draggedElement.x;
-                    let shiftY = idealY - draggedElement.y;
-                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                        let shiftX = idealX - draggedElement.x;
+                        let shiftY = idealY - draggedElement.y;
+                        dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
 
-                    // Kettenausrichtung auch im gerasteten Zustand aufrechterhalten
-                    recalculateChainAlignment(draggedElement);
-                    snappedParent = bestSnap.other;
+                        // Kettenausrichtung auch im gerasteten Zustand aufrechterhalten
+                        recalculateChainAlignment(draggedElement);
+                        snappedParent = bestSnap.other;
+                    }
                 }
             }
+
+            if (snappedParent) draggedElement.parent = snappedParent;
+            updateActionMenu();
+            draw();
+
+        } else if (isDraggingCanvas) {
+            panX = e.clientX - startMouseX;
+            panY = e.clientY - startMouseY;
+            draw();
         }
-
-        if (snappedParent) draggedElement.parent = snappedParent;
-        updateActionMenu();
-        draw();
-
-    } else if (isDraggingCanvas) {
-        panX = e.clientX - startMouseX;
-        panY = e.clientY - startMouseY;
-        draw();
-    }
-});
+    });
 
     canvas.addEventListener('mouseup', () => { draggedElement = null; dragGroup = []; isDraggingCanvas = false; updateActionMenu(); draw(); });
     canvas.addEventListener('wheel', (e) => {
@@ -2318,6 +2402,7 @@ canvas.addEventListener('mousemove', (e) => {
         }).sort((a, b) => a.x - b.x);
 
         let startName = moduleSettings['assembly_leg']?.startName || "S1";
+        let isRTL = moduleSettings['assembly_leg']?.numberingDirection === 'rtl'; // NEU: Auslesen der Richtung
         let prefix = "S", startNum = 1;
         let match = startName.match(/^([^0-9]*)(\d+)$/);
         if (match) {
@@ -2328,9 +2413,13 @@ canvas.addEventListener('mousemove', (e) => {
             startNum = 1;
         }
 
+        let numLegs = legItems.length;
         legItems.forEach((item, idx) => {
-            item.localIdx = idx + 1;
-            let num1 = startNum + (idx * 2);
+            // NEU: Logischer Index wird umgedreht, wenn RTL gewählt ist
+            let logicalIdx = isRTL ? (numLegs - 1 - idx) : idx;
+
+            item.localIdx = logicalIdx + 1;
+            let num1 = startNum + (logicalIdx * 2);
             let num2 = num1 + 1;
             item.label = `${prefix}${num1} & ${prefix}${num2}`;
         });
@@ -2963,8 +3052,7 @@ canvas.addEventListener('mousemove', (e) => {
                 baseH = (el.baseHeight || 150) * s; baseW = 400 * s;
                 let sW = 400 * SCALE_GLOBAL; let sH = (el.baseHeight || 150) * SCALE_GLOBAL;
 
-                ctx.fillStyle = isRed ? '#fca5a5' : '#94a3b8';
-                ctx.strokeStyle = isRed ? '#ef4444' : '#475569';
+ ctx.strokeStyle = isRed ? '#ef4444' : '#475569';
                 ctx.lineWidth = (isRed ? 3.0 : 1.5) / scale;
                 ctx.fillRect(-sW / 2, (plH - (topConn.y * s)), sW, sH); ctx.strokeRect(-sW / 2, (plH - (topConn.y * s)), sW, sH);
             } else if (el.baseType === 'heb120' && el.baseData) {
@@ -3013,7 +3101,172 @@ canvas.addEventListener('mousemove', (e) => {
         renderSchnittgroessen();
 
         ctx.restore();
+}
+
+// ==========================================
+// MODULE: SLIDER MOUSEWHEEL CONTROL
+// ==========================================
+document.querySelectorAll('#action-menu input[type="range"]').forEach(slider => {
+    slider.addEventListener('wheel', function (e) {
+        e.preventDefault(); // Verhindert das Scrollen der Seite (oder Herauszoomen der Canvas)
+
+        let step = parseFloat(this.step) || 1;
+        let val = parseFloat(this.value);
+
+        // deltaY < 0 bedeutet Mausrad nach oben drehen (Wert erhöhen)
+        if (e.deltaY < 0) {
+            val += step;
+        } else {
+            val -= step;
+        }
+
+        // Sicherstellen, dass die Min/Max-Grenzen nicht überschritten werden
+        if (this.hasAttribute('max')) val = Math.min(parseFloat(this.max), val);
+        if (this.hasAttribute('min')) val = Math.max(parseFloat(this.min), val);
+
+        this.value = val;
+
+        // Simuliert einen physischen Input, um deine bestehenden oninput-Funktionen zu triggern
+        this.dispatchEvent(new Event('input'));
+    });
+});
+// ==========================================
+// MODULE: SIDEBAR ICON GENERATOR (PERSISTENT FIX)
+// ==========================================
+
+// HIER STELLST DU DIE STRICHSTÄRKE EIN (z. B. 8 = fein, 20 = mittel, 45 = sehr dick)
+const ICON_STROKE_WIDTH = 50;
+
+async function getLineartIcon(filename, strokeWidth) {
+    let raw = await loadSVG(filename);
+    if (!raw) return null;
+
+    // FIX: vector-effect entfernt und 'px' bei stroke-width weggelassen.
+    // Dadurch skaliert der Browser die Linie nun physisch auf der Canvas mit!
+    const styleStr = `<style>
+            path, rect, circle, polygon, line, polyline, ellipse { 
+                stroke: #ffffff !important; 
+                stroke-width: ${strokeWidth} !important; 
+                fill: transparent !important; 
+            }
+        </style>`;
+
+    let modifiedSvg = raw.svgText.replace(/(<svg[^>]*>)/i, '$1' + styleStr);
+
+    const blob = new Blob([modifiedSvg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise(r => { img.onload = r; img.src = url; });
+
+    return { img: img, data: raw };
+}
+
+async function generateSidebarIcons() {
+    const sw = ICON_STROKE_WIDTH;
+
+    // --- 1. Einfache Bänder und Stationen ---
+    async function renderSingleIcon(filename, imgElementId) {
+        let asset = await getLineartIcon(filename, sw);
+        if (!asset) return;
+        const cvs = document.createElement('canvas');
+        cvs.width = 1000; cvs.height = 1000;
+        const ctx = cvs.getContext('2d');
+
+        let w = asset.data.width;
+        let h = asset.data.height;
+
+        // Korrekte proportionale Skalierung
+        let scaleFit = 800 / Math.max(w, h);
+        ctx.translate(500, 500);
+        ctx.scale(scaleFit, scaleFit);
+        ctx.translate(-w / 2, -h / 2);
+
+        ctx.drawImage(asset.img, 0, 0, w, h);
+
+        const imgEl = document.getElementById(imgElementId);
+        if (imgEl) imgEl.src = cvs.toDataURL();
     }
+
+    await renderSingleIcon('2480.svg', 'icon-2480');
+    await renderSingleIcon('3720.svg', 'icon-3720');
+    await renderSingleIcon('antriebstation.svg', 'icon-antrieb');
+    await renderSingleIcon('Spannstation.svg', 'icon-spann');
+
+    // --- 2. Baugruppe: Knick-Modul ---
+    const kCanvas = document.createElement('canvas');
+    kCanvas.width = 1000; kCanvas.height = 1000;
+    const kCtx = kCanvas.getContext('2d');
+    const kBody = await getLineartIcon('knick_body.svg', sw);
+    const kDet = await getLineartIcon('knick_body_details.svg', sw);
+    const kFla = await getLineartIcon('knick_flange.svg', sw);
+
+    if (kBody && kFla && kDet) {
+        let w = kBody.data.width, h = kBody.data.height;
+        const pL = kBody.data.nativePivotL || w * 0.1;
+        const pR = kBody.data.nativePivotR || w * 0.9;
+        let fw = kFla.data.width || w * 0.1;
+
+        let totalW = (pR + fw) - (pL - fw);
+        let scaleFit = 800 / Math.max(totalW, h);
+
+        kCtx.translate(500, 500);
+        kCtx.scale(scaleFit, scaleFit);
+        kCtx.translate(-w / 2, -h / 2);
+
+        kCtx.drawImage(kBody.img, 0, 0, w, h);
+        let dL = (kDet.data.connectors || []).find(c => c.x < kDet.data.width * 0.5) || { x: kDet.data.width * 0.1, y: 0 };
+        let detScale = (pR - pL) / (((kDet.data.connectors || []).find(c => c.x >= kDet.data.width * 0.5) || { x: kDet.data.width * 0.9, y: 0 }).x - dL.x);
+        kCtx.drawImage(kDet.img, pL - dL.x * detScale, 0 - dL.y * detScale, kDet.data.width * detScale, kDet.data.height * detScale);
+
+        kCtx.save(); kCtx.translate(pL, 0); kCtx.scale(-1, 1); kCtx.drawImage(kFla.img, 0, 0, fw, h); kCtx.restore();
+        kCtx.save(); kCtx.translate(pR, 0); kCtx.drawImage(kFla.img, 0, 0, fw, h); kCtx.restore();
+
+        const kImg = document.getElementById('icon-knick');
+        if (kImg) kImg.src = kCanvas.toDataURL();
+    }
+
+    // --- 3. Baugruppe: Stütze ---
+    const stCanvas = document.createElement('canvas');
+    stCanvas.width = 1000; stCanvas.height = 1000;
+    const stCtx = stCanvas.getContext('2d');
+    const sSt = await getLineartIcon('stütze.svg', sw);
+    const sTe = await getLineartIcon('teleskopstange.svg', sw);
+    const sPl = await getLineartIcon('stützplatte.svg', sw);
+
+    if (sSt && sTe && sPl) {
+        let stW = sSt.data.width, stH = sSt.data.height;
+        let teW = sTe.data.width, teH = sTe.data.height;
+        let plW = sPl.data.width, plH = sPl.data.height;
+        let extH = 600;
+
+        let teConnX = teW / 2, teConnY = teH;
+        if (sTe.data.connectors && sTe.data.connectors.length > 0) { teConnX = sTe.data.connectors[0].x; teConnY = sTe.data.connectors[0].y; }
+        let topConn = (sPl.data.connectors && sPl.data.connectors.find(c => c.type === 'top_connector')) || { x: plW / 2, y: 0 };
+
+        let totalH = Math.max(stH, stH * 0.1 + extH + teH + plH);
+        let scaleFit = 800 / totalH;
+
+        stCtx.translate(500, 500);
+        stCtx.scale(scaleFit, scaleFit);
+        stCtx.translate(0, -totalH / 2);
+
+        stCtx.drawImage(sTe.img, -teW / 2, stH * 0.1 + extH, teW, teH);
+        stCtx.drawImage(sSt.img, -stW / 2, 0, stW, stH);
+
+        stCtx.save();
+        stCtx.translate(-teW / 2 + teConnX, stH * 0.1 + extH + teConnY);
+        stCtx.drawImage(sPl.img, -topConn.x, -topConn.y, plW, plH);
+        stCtx.restore();
+
+        const stImg = document.getElementById('icon-stuetze');
+        if (stImg) stImg.src = stCanvas.toDataURL();
+    }
+}
+
+// Init-Call ausführen, sobald das Skript lädt
+generateSidebarIcons();
+
+
     </script>
 </body>
 </html>
