@@ -1100,6 +1100,10 @@ async function applySettings() {
                     loadedElements.push(rebuilt);
                 }
                 loadedElements.forEach(el => { if (el.parentId) el.parent = loadedElements.find(p => p.id === el.parentId) || null; });
+                loadedElements.forEach(el => {
+                    el._dragFreeX = el.x;
+                    el._dragFreeY = el.y;
+                });
                 elements = loadedElements; updateStats(); smartCenterView();
             } catch (err) { showNotification("Fehler beim Laden der .stag Datei."); }
             document.getElementById('file-loader').value = "";
@@ -1845,16 +1849,15 @@ canvas.addEventListener('mousedown', (e) => {
         else if (!selectedElements.includes(hit)) selectSingle(hit);
         draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
 
-        // --- NEU: Freies Drag-System für ALLE Elemente ---
         hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
         hit._hasJumpedToMouse = false;
 
-        // Reale Drag-Koordinaten für die gesamte Kette initialisieren
+        // FEHLERBEHEBUNG FÜR ALTE SPEICHERDATEIEN:
+        // Wir stellen sicher, dass _dragFreeX/Y niemals undefined ist!
         dragGroup.forEach(el => {
-            el._dragFreeX = el.x;
-            el._dragFreeY = el.y;
+            el._dragFreeX = (typeof el._dragFreeX === 'number' && !isNaN(el._dragFreeX)) ? el._dragFreeX : el.x;
+            el._dragFreeY = (typeof el._dragFreeY === 'number' && !isNaN(el._dragFreeY)) ? el._dragFreeY : el.y;
         });
-        // --- ENDE NEU ---
 
     } else {
         if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
@@ -2395,15 +2398,7 @@ function calculateSystemStatics(group) {
     legItems.forEach(item => {
         let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
         item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
-    });
-
-    let hasUplift = false;
-    legItems.forEach(item => {
-        let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
-        item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
-
-        // NUR noch Flag setzen
-        item.leg.isUplift = item.forceKN < -0.1;
+        item.leg.isUplift = item.forceKN < -0.1; // Setzt das Flag für Rote Einfärbung
     });
 
     return { legItems, minX, maxX, q_profiles, totalWeight, F_tot_kN, X_cg };
