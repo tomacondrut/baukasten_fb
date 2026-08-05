@@ -453,6 +453,29 @@
             pointer-events: none;
         }
 
+        #uplift-warning-indicator {
+            position: absolute;
+            bottom: 50px; /* Exakt über der 40px hohen Statistik-Leiste platziert */
+            left: 20px; /* Bündig mit dem Text der Statistik-Leiste */
+            top: auto; /* Wichtig: top-Positionierung aufheben */
+            background-color: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 50;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+            #uplift-warning-indicator:hover {
+                background-color: #dc2626;
+            }
         .toast-msg {
             background: #1e293b;
             color: #f87171;
@@ -694,6 +717,11 @@
     </div>
 
     <div id="main-content">
+
+        <div id="uplift-warning-indicator" title="Klicken für Details" onclick="showNotification('Eine oder mehrere Stützen unter Zugkraft (rot). Bitte Anordnung prüfen!')">
+            ⚠️ Statische Verspannung
+        </div>
+
         <div id="stats-bar">
             <div class="stat-item"><span style="color: #38bdf8; font-weight: bold; text-transform: uppercase;">Anlagen-Statistik:</span><span id="stat-elements" class="stat-val">Bänder: 0x 2480 | 0x 3720 &nbsp;&nbsp;&bull;&nbsp;&nbsp; Knicke: 0</span></div>
             <div class="stat-item"><span id="stat-weight" class="stat-val" style="color: #38bdf8; font-size: 0.95rem;">Gesamtgewicht: 0 kg</span></div>
@@ -715,6 +743,8 @@
             <button class="btn" onclick="smartCenterView()">Ansicht Zentrieren</button>
             <button class="btn btn-danger" onclick="clearCanvas()">Alles Löschen</button>
         </div>
+
+
 
         <div id="action-menu">
             <span style="color: #38bdf8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Aktion:</span>
@@ -900,13 +930,13 @@ function openStatikInfoModal() {
     let html = `<div style="margin-bottom: 20px;">
             <h4 style="color: #38bdf8; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 8px;">Wissenschaftliche Berechnungsgrundlagen</h4>
             <div class="info-text" style="margin-top: 10px; line-height: 1.6;">
-                Die statische Berechnung dieses Anlagen-Baukastens basiert auf der <b>Methode der finiten Elemente (Matrix-Verschiebungs-Methode / Steifigkeitsverfahren)</b>. 
+                Die statische Berechnung dieses Anlagen-Baukastens basiert auf der <b>Methode der finiten Elemente (Matrix-Verschiebungs-Methode / Steifigkeitsverfahren)</b>.
                 Im Gegensatz zu klassischen Kraftgrößenverfahren, bei denen unendlich starre Auflager zu unrealistischen Zwangskräften ("Wippen-Effekt") führen können, modelliert dieser Solver die reale makroskopische Elastizität des gesamten Fördersystems.
             </div>
-            
+
             <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">1. Die Euler-Bernoulli-Balkentheorie</h5>
             <div class="info-text">
-                Das Gesamtsystem wird an Stützen und Modulgrenzen in $n$ diskrete Balkenelemente der Länge $L$ diskretisiert. Aufgrund des hohen Schlankheitsgrades der Förderbänder werden Schubverzerrungen vernachlässigt (Bernoulli-Hypothese). 
+                Das Gesamtsystem wird an Stützen und Modulgrenzen in $n$ diskrete Balkenelemente der Länge $L$ diskretisiert. Aufgrund des hohen Schlankheitsgrades der Förderbänder werden Schubverzerrungen vernachlässigt (Bernoulli-Hypothese).
                 Die Steifigkeit jedes Elements wird durch den E-Modul und das äquivalente Flächenträgheitsmoment ($EI_y$) definiert. Diese Parameter können durch detaillierte 3D-FEA-Simulationen an realen Profilen ermittelt und hier als idealisierter 1D-Ersatzquerschnitt eingepflegt werden. Die lokale Elementsteifigkeitsmatrix $\\mathbf{K_e}$ lautet:
             </div>
             <div class="formula-box" style="overflow-x: auto;">$$ \\mathbf{K_e} = \\frac{E I_y}{L^3} \\begin{bmatrix} 12 & 6L & -12 & 6L \\\\ 6L & 4L^2 & -6L & 2L^2 \\\\ -12 & -6L & 12 & -6L \\\\ 6L & 2L^2 & -6L & 4L^2 \\end{bmatrix} $$</div>
@@ -918,10 +948,10 @@ function openStatikInfoModal() {
 
             <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">3. Elastische Bettung (Winkler-Modell)</h5>
             <div class="info-text">
-                Teleskopstützen, Profilverschraubungen und Betonsockel geben unter Last mikroskopisch nach. Diese axiale Nachgiebigkeit wird durch eine lineare Federsteifigkeit $k_s$ in $\\text{kN/m}$ abgebildet. 
+                Teleskopstützen, Profilverschraubungen und Betonsockel geben unter Last mikroskopisch nach. Diese axiale Nachgiebigkeit wird durch eine lineare Federsteifigkeit $k_s$ in $\\text{kN/m}$ abgebildet.
                 Mathematisch werden diese Werte auf die Hauptdiagonale der globalen Steifigkeitsmatrix $\\mathbf{K}$ addiert. Dies verhindert Matrix-Singularitäten und baut statische Verspannungsspitzen bei eng stehenden Stützen realistisch ab – das System kann sich in seinen Auflagern "setzen".
             </div>
-            
+
             <h5 style="color: #cbd5e1; margin-top: 15px; font-size: 0.95rem;">4. Systemlösung & Differentialgleichung der Biegelinie</h5>
             <div class="info-text">
                 Durch Assemblierung aller Matrizen entsteht das globale lineare Gleichungssystem $\\mathbf{K} \\cdot \\mathbf{u} = \\mathbf{F}$, welches per numerischer Gauß-Elimination nach dem Verschiebungsvektor $\\mathbf{u}$ aufgelöst wird.
@@ -1807,19 +1837,31 @@ async function updateLegBase(val) {
         draw();
     }
 
-    canvas.addEventListener('mousedown', (e) => {
-        canvas.focus();
-        const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
-        if (hit) {
-            if (e.ctrlKey || e.metaKey) toggleSelect(hit);
-            else if (!selectedElements.includes(hit)) selectSingle(hit);
-            draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
-        } else {
-            if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
-            isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
-        }
-        lastMouseWorld = getCanvasCoords(e); draw();
-    });
+canvas.addEventListener('mousedown', (e) => {
+    canvas.focus();
+    const pos = getCanvasCoords(e); const hit = getElementAtPosition(pos);
+    if (hit) {
+        if (e.ctrlKey || e.metaKey) toggleSelect(hit);
+        else if (!selectedElements.includes(hit)) selectSingle(hit);
+        draggedElement = hit; dragGroup = (hit.type === 'assembly_leg') ? [hit] : getConnectedGroup(hit);
+
+        // --- NEU: Freies Drag-System für ALLE Elemente ---
+        hit._wasAnchoredOnPickup = (hit.parent !== null || elements.some(e => e.parent === hit));
+        hit._hasJumpedToMouse = false;
+
+        // Reale Drag-Koordinaten für die gesamte Kette initialisieren
+        dragGroup.forEach(el => {
+            el._dragFreeX = el.x;
+            el._dragFreeY = el.y;
+        });
+        // --- ENDE NEU ---
+
+    } else {
+        if (!e.ctrlKey && !e.metaKey) { selectedElements = []; updateActionMenu(); }
+        isDraggingCanvas = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
+    }
+    lastMouseWorld = getCanvasCoords(e); draw();
+});
 
 canvas.addEventListener('mousemove', (e) => {
     if (draggedElement && dragGroup.length > 0) {
@@ -1827,101 +1869,162 @@ canvas.addEventListener('mousemove', (e) => {
         let worldDx = currentMouseWorld.x - lastMouseWorld.x;
         let worldDy = currentMouseWorld.y - lastMouseWorld.y;
 
-        // 1. NEU: Stütze beim Loslösen direkt zur Maus springen lassen!
-        if (draggedElement.type === 'assembly_leg' && draggedElement.parent) {
+        // 1. Fremdes Parent temporär lösen, während gezogen wird
+        if (draggedElement.parent && !dragGroup.includes(draggedElement.parent)) {
             draggedElement.parent = null;
-            const s = draggedElement.scaleFactor;
-            // Wir zentrieren den oberen Connector der Stütze exakt auf die letzte Mausposition
-            let shiftX = lastMouseWorld.x - (draggedElement.x + draggedElement.connector.x * s);
-            let shiftY = lastMouseWorld.y - (draggedElement.y + draggedElement.connector.y * s);
-            dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
         }
+
+        // 2. Einmaliger Sprung zum Mauszeiger NUR für Stützen
+        if (draggedElement.type === 'assembly_leg') {
+            if (draggedElement._wasAnchoredOnPickup && !draggedElement._hasJumpedToMouse) {
+                const s = draggedElement.scaleFactor;
+                let shiftX = currentMouseWorld.x - (draggedElement._dragFreeX + draggedElement.connector.x * s);
+                let shiftY = currentMouseWorld.y - (draggedElement._dragFreeY + draggedElement.connector.y * s);
+
+                dragGroup.forEach(el => {
+                    el._dragFreeX += shiftX;
+                    el._dragFreeY += shiftY;
+                });
+                draggedElement._hasJumpedToMouse = true;
+            }
+        }
+
+        // 3. Echte Mausbewegung auf die "freien" Geister-Koordinaten addieren
+        let localDx = worldDx, localDy = worldDy;
+        if (draggedElement.type !== 'assembly_leg') {
+            const angle = getChainAngle(draggedElement);
+            if (angle !== 0 && !draggedElement.parent) {
+                const rad = (angle * Math.PI) / 180;
+                localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad);
+                localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
+            }
+        }
+
+        dragGroup.forEach(el => {
+            el._dragFreeX += localDx;
+            el._dragFreeY += localDy;
+
+            // Alle Elemente auf freie Maus-Position setzen
+            el.x = el._dragFreeX;
+            el.y = el._dragFreeY;
+        });
 
         lastMouseWorld = currentMouseWorld;
 
         if (draggedElement.ignoreSnapUntilMove && Math.hypot(draggedElement.x - draggedElement.detachStartX, draggedElement.y - draggedElement.detachStartY) > 25) {
-            draggedElement.ignoreSnapUntilMove = false; draggedElement.isDetached = false;
+            draggedElement.ignoreSnapUntilMove = false;
+            draggedElement.isDetached = false;
         }
 
-        const angle = getChainAngle(draggedElement); let localDx = worldDx, localDy = worldDy;
-        if (angle !== 0 && !draggedElement.parent) {
-            const rad = (angle * Math.PI) / 180;
-            localDx = worldDx * Math.cos(rad) - worldDy * Math.sin(rad); localDy = worldDx * Math.sin(rad) + worldDy * Math.cos(rad);
-        }
-        dragGroup.forEach(el => { el.x += localDx; el.y += localDy; });
+        // 4. Vereinigte Snap-Logik für alle Bauteile
+        const SNAP = 25 / scale;
+        let snappedParent = null;
 
-        const SNAP = 25 / scale; let snappedParent = null;
+        if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached) {
 
-        if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.connectors && draggedElement.type !== 'assembly_leg') {
-            const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
-            let bestSnap = null, minSnapDist = SNAP;
+            // --- A) STÜTZEN-SNAP ---
+            if (draggedElement.type === 'assembly_leg') {
+                const legConnWorld = getLegConnectorWorldPos(draggedElement);
+                let bestLegSnap = null;
+                let minLegSnapDist = SNAP;
 
-            myAllFlanges.forEach(myConn => {
-                let myIsLeft = isLeftConnector(draggedElement, myConn); let myWorld = getConnectorWorldPos(draggedElement, myConn);
                 elements.forEach(other => {
-                    if (dragGroup.includes(other) || other.isDetached) return;
-                    if (draggedElement.type === 'knick' && other.type === 'end_unit') return;
-                    if (draggedElement.type === 'end_unit' && other.type === 'knick') return;
+                    if (!dragGroup.includes(other) && other.connectors) {
+                        const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
+                        otherLegConnectors.forEach(c => {
+                            if (isConnectorOccupied(other, c)) return;
+                            const bandConnWorld = getConnectorWorldPos(other, c);
+                            let dist = Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y);
 
-                    const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
-                    otherAllFlanges.forEach(otherConn => {
-                        if (isConnectorOccupied(other, otherConn)) return;
-                        let otherIsLeft = isLeftConnector(other, otherConn);
-                        if (myIsLeft !== otherIsLeft) {
-                            let otherPos = getConnectorWorldPos(other, otherConn);
-                            let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
-                            if (dist < minSnapDist) { minSnapDist = dist; bestSnap = { other, myConn, otherConn }; }
+                            if (dist < minLegSnapDist) {
+                                minLegSnapDist = dist;
+                                bestLegSnap = { other, c };
+                            }
+                        });
+                    }
+                });
+
+                if (bestLegSnap) {
+                    snappedParent = bestLegSnap.other;
+                    let targetOff = getLocalFlangeOffset(bestLegSnap.other, bestLegSnap.c);
+                    let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
+                    let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
+
+                    // Nur visuell verschieben (_dragFreeX bleibt stetig)
+                    let shiftX = idealX - draggedElement.x;
+                    let shiftY = idealY - draggedElement.y;
+                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                }
+
+                // --- B) BÄNDER / KNICKE / ENDSTATIONEN SNAP ---
+            } else if (draggedElement.connectors) {
+                const myAllFlanges = draggedElement.connectors.filter(c => c.type === 'flange');
+                let bestSnap = null, minSnapDist = SNAP;
+
+                myAllFlanges.forEach(myConn => {
+                    let myIsLeft = isLeftConnector(draggedElement, myConn);
+                    let myWorld = getConnectorWorldPos(draggedElement, myConn);
+
+                    elements.forEach(other => {
+                        if (dragGroup.includes(other) || other.isDetached) return;
+
+                        // Warnung Knick <-> Endstation
+                        if ((draggedElement.type === 'knick' && other.type === 'end_unit') ||
+                            (draggedElement.type === 'end_unit' && other.type === 'knick')) {
+
+                            const checkFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                            checkFlanges.forEach(otherConn => {
+                                let otherPos = getConnectorWorldPos(other, otherConn);
+                                if (Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y) < SNAP) {
+                                    let now = Date.now();
+                                    if (!window.lastKnickWarning || now - window.lastKnickWarning > 4000) {
+                                        window.lastKnickWarning = now;
+                                        showNotification("Konstruktionsvorgabe: Antriebs- und Spannstationen dürfen nicht direkt an Knick-Modulen angeflanscht werden.");
+                                    }
+                                }
+                            });
+                            return;
                         }
+
+                        const otherAllFlanges = (other.connectors || []).filter(c => c.type === 'flange');
+                        otherAllFlanges.forEach(otherConn => {
+                            if (isConnectorOccupied(other, otherConn)) return;
+                            let otherIsLeft = isLeftConnector(other, otherConn);
+                            if (myIsLeft !== otherIsLeft) {
+                                let otherPos = getConnectorWorldPos(other, otherConn);
+                                let dist = Math.hypot(myWorld.x - otherPos.x, myWorld.y - otherPos.y);
+                                if (dist < minSnapDist) {
+                                    minSnapDist = dist;
+                                    bestSnap = { other, myConn, otherConn };
+                                }
+                            }
+                        });
                     });
                 });
-            });
-            if (bestSnap) {
-                let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn); let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
-                let idealX = bestSnap.other.x + otherOff.x - myOff.x; let idealY = bestSnap.other.y + otherOff.y - myOff.y;
-                let shiftX = idealX - draggedElement.x; let shiftY = idealY - draggedElement.y;
-                dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
-                snappedParent = bestSnap.other;
-            }
-        }
-        else if (!draggedElement.ignoreSnapUntilMove && !draggedElement.isDetached && draggedElement.type === 'assembly_leg') {
-            const legConnWorld = getLegConnectorWorldPos(draggedElement);
 
-            // 2. NEU: Kürzeste Distanz suchen, um wildes Hüpfen zu verhindern!
-            let bestLegSnap = null;
-            let minLegSnapDist = SNAP;
+                if (bestSnap) {
+                    let myOff = getLocalFlangeOffset(draggedElement, bestSnap.myConn);
+                    let otherOff = getLocalFlangeOffset(bestSnap.other, bestSnap.otherConn);
+                    let idealX = bestSnap.other.x + otherOff.x - myOff.x;
+                    let idealY = bestSnap.other.y + otherOff.y - myOff.y;
 
-            elements.forEach(other => {
-                if (!dragGroup.includes(other) && other.connectors) {
-                    const otherLegConnectors = other.connectors.filter(c => c.type === 'leg');
-                    otherLegConnectors.forEach(c => {
-                        if (isConnectorOccupied(other, c)) return;
-                        const bandConnWorld = getConnectorWorldPos(other, c);
-                        let dist = Math.hypot(legConnWorld.x - bandConnWorld.x, legConnWorld.y - bandConnWorld.y);
-
-                        // Nur einrasten, wenn dieser Punkt näher ist als alle bisher gefundenen
-                        if (dist < minLegSnapDist) {
-                            minLegSnapDist = dist;
-                            bestLegSnap = { other, c };
-                        }
-                    });
+                    // Nur visuell verschieben (_dragFreeX bleibt stetig)
+                    let shiftX = idealX - draggedElement.x;
+                    let shiftY = idealY - draggedElement.y;
+                    dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
+                    snappedParent = bestSnap.other;
                 }
-            });
-
-            if (bestLegSnap) {
-                snappedParent = bestLegSnap.other;
-                let targetOff = getLocalFlangeOffset(bestLegSnap.other, bestLegSnap.c);
-                let idealX = bestLegSnap.other.x + targetOff.x - (draggedElement.connector.x * draggedElement.scaleFactor);
-                let idealY = bestLegSnap.other.y + targetOff.y - (draggedElement.connector.y * draggedElement.scaleFactor);
-                let shiftX = idealX - draggedElement.x;
-                let shiftY = idealY - draggedElement.y;
-                dragGroup.forEach(el => { el.x += shiftX; el.y += shiftY; });
             }
         }
 
         if (snappedParent) draggedElement.parent = snappedParent;
-        updateActionMenu(); draw();
+        updateActionMenu();
+        draw();
+
     } else if (isDraggingCanvas) {
-        panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; draw();
+        panX = e.clientX - startMouseX;
+        panY = e.clientY - startMouseY;
+        draw();
     }
 });
 
@@ -2033,38 +2136,49 @@ canvas.addEventListener('mousemove', (e) => {
         });
     }
 
-    function renderHeightKoten() {
-        const toggle = document.getElementById('toggle-koten'); if (!toggle || !toggle.checked) return;
-        const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
-        let legData = []; let maxWorldY = -Infinity;
-        legs.forEach(leg => {
-            let plBottomCenter = getLegBottomWorldCenter(leg);
-            let baseH = 0;
-            if (leg.baseType === 'sockel') { baseH = leg.baseHeight * SCALE_GLOBAL; }
-            else if (leg.baseType === 'heb120' && leg.baseData) {
-                baseH = leg.baseData.height * SCALE_GLOBAL;
-                if (leg.baseData.connectors && leg.baseData.connectors.length > 0) baseH -= leg.baseData.connectors[0].y * SCALE_GLOBAL;
-            }
-            plBottomCenter.y += baseH;
-            if (plBottomCenter.y > maxWorldY) maxWorldY = plBottomCenter.y;
-            legData.push({ pos: plBottomCenter });
-        });
-        ctx.save();
-        ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-        ctx.fillStyle = '#0ea5e9'; ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 1.0 / scale;
-        legData.forEach(item => {
-            let diffPx = maxWorldY - item.pos.y; let mmVal = Math.round(diffPx / SCALE_GLOBAL); let mVal = (mmVal / 1000).toFixed(2);
-            let labelText = (mmVal === 0) ? '±0.00' : `+${mVal}`;
-            let lx = item.pos.x, ly = item.pos.y;
-            let offsetX = 150 * SCALE_GLOBAL / scale; let koteX = lx + offsetX;
-            let triW = 30 * SCALE_GLOBAL / scale, triH = 40 * SCALE_GLOBAL / scale, lineLength = 180 * SCALE_GLOBAL / scale;
-            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(koteX + triW + 10 * SCALE_GLOBAL / scale, ly); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(koteX, ly); ctx.lineTo(koteX - triW, ly - triH); ctx.lineTo(koteX + triW, ly - triH); ctx.closePath(); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(koteX + triW, ly - triH); ctx.lineTo(koteX + triW + lineLength, ly - triH); ctx.stroke();
-            ctx.fillText(labelText, koteX + triW + 15 * SCALE_GLOBAL / scale, ly - triH - 5 * SCALE_GLOBAL / scale);
-        });
-        ctx.restore();
-    }
+function renderHeightKoten() {
+    const toggle = document.getElementById('toggle-koten'); if (!toggle || !toggle.checked) return;
+    const legs = elements.filter(e => e.type === 'assembly_leg'); if (legs.length === 0) return;
+
+    let legData = [];
+    let lowestPlateY = -Infinity; // Speichert das Niveau der tiefsten Stützplatte für ±0.00
+
+    legs.forEach(leg => {
+        let plBottomCenter = getLegBottomWorldCenter(leg);
+
+        // Die tiefste Stützplatte wird als Referenz (±0.00) ermittelt (ohne Unterbau/Sockel)
+        if (plBottomCenter.y > lowestPlateY) lowestPlateY = plBottomCenter.y;
+
+        legData.push({ pos: plBottomCenter });
+    });
+
+    ctx.save();
+    ctx.font = `${60 * SCALE_GLOBAL / scale}px 'Segoe UI', sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#0ea5e9';
+    ctx.strokeStyle = '#0ea5e9';
+    ctx.lineWidth = 1.0 / scale;
+
+    legData.forEach(item => {
+        // Die Anzeige berechnet sich nun rein aus dem Abstand zur tiefsten Stützplatte
+        let diffPx = lowestPlateY - item.pos.y;
+        let mmVal = Math.round(diffPx / SCALE_GLOBAL);
+        let mVal = (mmVal / 1000).toFixed(2);
+        let labelText = (mmVal === 0) ? '±0.00' : `+${mVal}`;
+
+        // lx und ly sind exakt die Unterkante der Stützplatte
+        let lx = item.pos.x, ly = item.pos.y;
+        let offsetX = 150 * SCALE_GLOBAL / scale; let koteX = lx + offsetX;
+        let triW = 30 * SCALE_GLOBAL / scale, triH = 40 * SCALE_GLOBAL / scale, lineLength = 180 * SCALE_GLOBAL / scale;
+
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(koteX + triW + 10 * SCALE_GLOBAL / scale, ly); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(koteX, ly); ctx.lineTo(koteX - triW, ly - triH); ctx.lineTo(koteX + triW, ly - triH); ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(koteX + triW, ly - triH); ctx.lineTo(koteX + triW + lineLength, ly - triH); ctx.stroke();
+        ctx.fillText(labelText, koteX + triW + 15 * SCALE_GLOBAL / scale, ly - triH - 5 * SCALE_GLOBAL / scale);
+    });
+    ctx.restore();
+}
 
     function renderDimensions() {
         const toggle = document.getElementById('toggle-massketten'); if (!toggle || !toggle.checked) return;
@@ -2284,15 +2398,13 @@ function calculateSystemStatics(group) {
     });
 
     let hasUplift = false;
-    legItems.forEach(item => { item.leg.isUplift = item.forceKN < -0.1; if (item.leg.isUplift) hasUplift = true; });
+    legItems.forEach(item => {
+        let idx = nodes.findIndex(x => Math.abs(x - item.x_m) < 2e-3);
+        item.forceKN = (idx !== -1) ? -k_spring_default * u[2 * idx] : 0;
 
-    if (hasUplift && typeof isDraggingCanvas !== 'undefined' && !isDraggingCanvas && (!draggedElement || dragGroup.length === 0)) {
-        let now = Date.now();
-        if (!window.lastUpliftWarning || now - window.lastUpliftWarning > 6000) {
-            window.lastUpliftWarning = now;
-            setTimeout(() => showNotification("Statische Verspannung: Abhebende Stütze (rot markiert) erkannt!"), 50);
-        }
-    }
+        // NUR noch Flag setzen
+        item.leg.isUplift = item.forceKN < -0.1;
+    });
 
     return { legItems, minX, maxX, q_profiles, totalWeight, F_tot_kN, X_cg };
 }
@@ -2662,9 +2774,12 @@ function renderReactionForces() {
     if (allLegData.length === 0) return;
     let maxGlobalF = 0;
     let maxWorldY = -Infinity;
+    let globalHasUplift = false; // --- NEU ---
 
     allLegData.forEach(item => {
         if (Math.abs(item.forceKN) > maxGlobalF) maxGlobalF = Math.abs(item.forceKN);
+        if (item.forceKN < -0.1) globalHasUplift = true; // --- NEU ---
+
         let yWithBase = item.y + item.baseH;
         if (yWithBase > maxWorldY) maxWorldY = yWithBase;
     });
@@ -2745,6 +2860,25 @@ function renderReactionForces() {
         ctx.fillText(forceStr, 0, 0);
         ctx.restore();
     });
+
+    // --- NEUE WARNUNGS-UI LOGIK ---
+    const indicator = document.getElementById('uplift-warning-indicator');
+    if (indicator) {
+        if (globalHasUplift) {
+            // Indikator ausblenden, während man zieht (damit er nicht stört)
+            indicator.style.display = (!isDraggingCanvas && !draggedElement) ? 'flex' : 'none';
+
+            // Toast NUR feuern, wenn wir es noch nicht getan haben UND die Maus frei ist
+            if (!window.hasShownUpliftToast && !isDraggingCanvas && !draggedElement) {
+                showNotification("Statische Verspannung: Abhebende Stütze (rot markiert) erkannt!");
+                window.hasShownUpliftToast = true; // Sperrt weiteres Spammen
+            }
+        } else {
+            // Reset NUR dann, wenn das Problem auch wirklich behoben wurde (kein Uplift mehr)
+            indicator.style.display = 'none';
+            window.hasShownUpliftToast = false;
+        }
+    }
 
     ctx.restore();
 }
@@ -2839,32 +2973,47 @@ function renderReactionForces() {
         elements.filter(e => e.type === 'assembly_leg').forEach(el => {
             const s = el.scaleFactor;
             const st = el.parts.stuetze, te = el.parts.teleskop, pl = el.parts.platte;
+
+            // --- NEU: FARB-WECHSLER ---
+            const isRed = el.isUplift && el.redParts;
+            const stImg = isRed ? el.redParts.stuetze : st.img;
+            const teImg = isRed ? el.redParts.teleskop : te.img;
+            const plImg = isRed ? el.redParts.platte : pl.img;
+
             const stW = st.width * s, stH = st.height * s; const teW = te.width * s, teH = te.height * s; const plW = pl.width * s, plH = pl.height * s;
             const extH = (el.extension + 250) * s;
             ctx.save(); let ops = getTransformOps(el.parent || el);
             for (let op of ops) { ctx.translate(op.cx, op.cy); ctx.rotate((-op.angle * Math.PI) / 180); ctx.translate(-op.cx, -op.cy); }
 
             const teX = el.x + (stW / 2) - (teW / 2); const teY = el.y + (st.height * 0.1) * s + extH;
-            ctx.drawImage(te.img, teX, teY, teW, teH); ctx.drawImage(st.img, el.x, el.y, stW, stH);
+
+            // Zeichne mit den selektierten (evtl. roten) Images
+            ctx.drawImage(teImg, teX, teY, teW, teH); ctx.drawImage(stImg, el.x, el.y, stW, stH);
+
             let teConnX = teW / 2, teConnY = teH;
             if (te.connectors && te.connectors.length > 0) { teConnX = te.connectors[0].x * s; teConnY = te.connectors[0].y * s; }
             let topConn = (pl.connectors && pl.connectors.find(c => c.type === 'top_connector')) || { x: pl.width / 2, y: 0 };
             ctx.save(); ctx.translate(teX + teConnX, teY + teConnY);
             ctx.rotate(((el.parent ? getGlobalAngle(el.parent) : 0) * Math.PI) / 180);
-            ctx.drawImage(pl.img, -(topConn.x * s), -(topConn.y * s), plW, plH);
+            ctx.drawImage(plImg, -(topConn.x * s), -(topConn.y * s), plW, plH);
 
             let baseH = 0; let baseW = stW;
             if (el.baseType === 'sockel') {
                 baseH = (el.baseHeight || 150) * s; baseW = 400 * s;
                 let sW = 400 * SCALE_GLOBAL; let sH = (el.baseHeight || 150) * SCALE_GLOBAL;
-                ctx.fillStyle = '#94a3b8'; ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5 / scale;
+
+                // Sockel färbt sich ebenfalls bedrohlich ein
+                ctx.fillStyle = isRed ? '#fca5a5' : '#94a3b8';
+                ctx.strokeStyle = isRed ? '#ef4444' : '#475569';
+                ctx.lineWidth = (isRed ? 3.0 : 1.5) / scale;
                 ctx.fillRect(-sW / 2, (plH - (topConn.y * s)), sW, sH); ctx.strokeRect(-sW / 2, (plH - (topConn.y * s)), sW, sH);
-            } else if (el.baseType === 'heb120' && el.baseImg && el.baseData) {
+            } else if (el.baseType === 'heb120' && el.baseData) {
+                let activeBaseImg = (isRed && el.redBaseImg) ? el.redBaseImg : el.baseImg; // HEB 120 wird rot
                 baseH = el.baseData.height * s; baseW = el.baseData.width * s;
                 let sW = el.baseData.width * SCALE_GLOBAL; let sH = el.baseData.height * SCALE_GLOBAL;
                 let cX = sW / 2, cY = 0;
                 if (el.baseData.connectors && el.baseData.connectors.length > 0) { cX = el.baseData.connectors[0].x * SCALE_GLOBAL; cY = el.baseData.connectors[0].y * SCALE_GLOBAL; }
-                ctx.drawImage(el.baseImg, -cX, (plH - (topConn.y * s)) - cY, sW, sH);
+                if (activeBaseImg) ctx.drawImage(activeBaseImg, -cX, (plH - (topConn.y * s)) - cY, sW, sH);
             }
             ctx.restore();
 
