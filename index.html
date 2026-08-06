@@ -711,30 +711,31 @@
 
         <div class="section-title">Bandelemente</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '2480.svg')">
-            <img id="icon-2480" class="item-icon" src="">
+            <img class="item-icon" src="icons/2480.png" alt="2480">
             <h3>Bandelement 2480 <span class="gear-btn" onclick="openSettings('2480.svg')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('band', '3720.svg')">
-            <img id="icon-3720" class="item-icon" src="">
+            <img class="item-icon" src="icons/3720.png" alt="3720">
             <h3>Bandelement 3720 <span class="gear-btn" onclick="openSettings('3720.svg')">⚙️</span></h3>
         </div>
 
         <div class="section-title">Peripherie & Knick</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addKnickModule()">
-            <img id="icon-knick" class="item-icon" src="">
+            <img class="item-icon" src="icons/knick.png" alt="Knick">
             <h3>Knick-Modul <span class="gear-btn" onclick="openSettings('knick')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'antriebstation.svg')">
-            <img id="icon-antrieb" class="item-icon" src="">
+            <img class="item-icon" src="icons/antriebstation.png" alt="Antriebsstation">
             <h3>Antriebsstation <span class="gear-btn" onclick="openSettings('antriebstation.svg')">⚙️</span></h3>
         </div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addModule('end_unit', 'Spannstation.svg')">
-            <img id="icon-spann" class="item-icon" src="">
+            <img class="item-icon" src="icons/spannstation.png" alt="Spannstation">
             <h3>Spannstation <span class="gear-btn" onclick="openSettings('Spannstation.svg')">⚙️</span></h3>
         </div>
+
         <div class="section-title">Stützen</div>
         <div class="item-card" onclick="if(event.target.closest('.gear-btn')) return; addStuetzfuss()">
-            <img id="icon-stuetze" class="item-icon" src="">
+            <img class="item-icon" src="icons/stützfuss.png" alt="Stützfuß">
             <h3>Stützfuß <span class="gear-btn" onclick="openSettings('assembly_leg')">⚙️</span></h3>
         </div>
     </div>
@@ -2955,6 +2956,41 @@ canvas.addEventListener('mousedown', (e) => {
         ctx.scale(dpr, dpr);
         ctx.translate(panX, panY);
         ctx.scale(scale, scale);
+
+
+        // --- 1. NEW: 1m x 1m World Grid (Only visible on screen) ---
+        if (!window.isPrintingActive) {
+            ctx.save();
+            ctx.strokeStyle = '#cbd5e1'; // Darker grey for better visibility
+            ctx.lineWidth = 0.4 / scale; // Slightly thicker line
+
+            // Calculate the visible boundaries of the canvas in world coordinates
+            let startX = -panX / scale;
+            let endX = (canvas.width / dpr - panX) / scale; // Adjusted for DPR
+            let startY = -panY / scale;
+            let endY = (canvas.height / dpr - panY) / scale; // Adjusted for DPR
+
+            let gridSize = 1000 * SCALE_GLOBAL; // 1 meter in world coordinates
+
+            // Anchor the grid to the global 0,0 origin
+            let offsetX = Math.floor(startX / gridSize) * gridSize;
+            let offsetY = Math.floor(startY / gridSize) * gridSize;
+
+            ctx.beginPath();
+            // Vertical grid lines
+            for (let x = offsetX; x <= endX; x += gridSize) {
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+            }
+            // Horizontal grid lines
+            for (let y = offsetY; y <= endY; y += gridSize) {
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
         const isLegDragged = draggedElement && draggedElement.type === 'assembly_leg';
 
         elements.filter(e => e.type === 'band' || e.type === 'end_unit').forEach(el => {
@@ -2987,7 +3023,10 @@ canvas.addEventListener('mousedown', (e) => {
             ctx.save(); ctx.translate(el.x, el.y);
             ctx.strokeStyle = el.color || '#0f172a';
 
-            ctx.lineWidth = 0.08 / scale;
+            // Vorher: ctx.lineWidth = 0.3 / scale;
+
+            // NEU: Einfach ein fester Wert OHNE das Teilen durch scale
+            ctx.lineWidth = 0.3;
 
             ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             if (el.bodyData.paths) {
@@ -3101,6 +3140,39 @@ canvas.addEventListener('mousedown', (e) => {
         renderSchnittgroessen();
 
         ctx.restore();
+
+        // --- 2. NEW: Scale Indicator (1m) in bottom left ---
+        if (!window.isPrintingActive) {
+            ctx.save();
+            ctx.scale(dpr, dpr); // Fix for high-res/retina screens
+
+            let indicatorLength = 1000 * SCALE_GLOBAL * scale;
+            let indicatorX = 30;
+            let indicatorY = (canvas.height / dpr) - 60; // Adjusted for DPR
+
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#64748b';
+            ctx.font = 'bold 13px "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            // Draw the indicator line and the end-ticks
+            ctx.beginPath();
+            ctx.moveTo(indicatorX, indicatorY);
+            ctx.lineTo(indicatorX + indicatorLength, indicatorY);
+
+            ctx.moveTo(indicatorX, indicatorY - 5);
+            ctx.lineTo(indicatorX, indicatorY + 5);
+
+            ctx.moveTo(indicatorX + indicatorLength, indicatorY - 5);
+            ctx.lineTo(indicatorX + indicatorLength, indicatorY + 5);
+            ctx.stroke();
+
+            // Draw the "1 m" text centered above the line
+            ctx.fillText("1 m", indicatorX + (indicatorLength / 2), indicatorY - 6);
+            ctx.restore();
+        }
 }
 
 // ==========================================
