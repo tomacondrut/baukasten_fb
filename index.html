@@ -515,6 +515,107 @@
                 transform: translateY(0);
             }
 
+
+        /* ==========================================
+           TOUCH & TABLET OPTIMIZATIONS
+           ========================================== */
+
+        #mobile-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0f172a;
+            color: #fff;
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .mobile-warning-content {
+            background: #1e293b;
+            padding: 40px 20px;
+            border-radius: 12px;
+            border: 1px solid #38bdf8;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 400px;
+        }
+
+            .mobile-warning-content h2 {
+                margin-bottom: 15px;
+                color: #38bdf8;
+            }
+
+            .mobile-warning-content p {
+                color: #cbd5e1;
+                font-size: 0.95rem;
+                line-height: 1.5;
+                margin-bottom: 10px;
+            }
+
+        /* Smartphone (Hoch- & Querformat) - Alles andere ausblenden */
+        @media (max-width: 767px) {
+            body > *:not(#mobile-warning) {
+                display: none !important;
+            }
+
+            #mobile-warning {
+                display: flex;
+            }
+        }
+
+        /* Tablet Optimierungen (Größere Touch-Ziele) */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .btn {
+                padding: 12px 16px;
+                font-size: 0.95rem;
+            }
+            /* Größere Buttons */
+            .toggle-container {
+                padding: 10px 14px;
+            }
+            /* Größere Toggles */
+            .switch {
+                width: 44px;
+                height: 26px;
+            }
+            /* Touch-friendly Schalter */
+            .slider:before {
+                height: 18px;
+                width: 18px;
+                left: 4px;
+                bottom: 4px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(18px);
+            }
+
+            #toolbar {
+                top: 10px;
+                right: 10px;
+                gap: 8px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                max-width: 60%;
+            }
+
+            #action-menu {
+                bottom: 65px;
+                padding: 16px 24px;
+            }
+
+            /* Sliders dicker machen für fette Finger */
+            input[type="range"] {
+                height: 20px;
+            }
+        }
+
+
         /* Print styles */
         #print-header, #print-border, #print-report, #print-statics-table {
             display: none;
@@ -663,6 +764,16 @@
     </style>
 </head>
 <body>
+
+    <div id="mobile-warning">
+        <div class="mobile-warning-content">
+            <span style="font-size: 3rem; margin-bottom: 10px; display: block;">🚫📱</span>
+            <h2>Gerät nicht unterstützt</h2>
+            <p>Der Förderband Baukasten Pro ist ein hochauflösendes Planungstool.</p>
+            <p>Bitte wechsle zu einem <b>Desktop-PC</b> oder einem <b>Tablet (im Querformat)</b>, um die Anlage zu konfigurieren.</p>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
     <div id="print-border"></div>
     <div id="print-report">
@@ -3216,10 +3327,10 @@ async function getLineartIcon(filename, strokeWidth) {
     // FIX: vector-effect entfernt und 'px' bei stroke-width weggelassen.
     // Dadurch skaliert der Browser die Linie nun physisch auf der Canvas mit!
     const styleStr = `<style>
-            path, rect, circle, polygon, line, polyline, ellipse { 
-                stroke: #ffffff !important; 
-                stroke-width: ${strokeWidth} !important; 
-                fill: transparent !important; 
+            path, rect, circle, polygon, line, polyline, ellipse {
+                stroke: #ffffff !important;
+                stroke-width: ${strokeWidth} !important;
+                fill: transparent !important;
             }
         </style>`;
 
@@ -3338,6 +3449,93 @@ async function generateSidebarIcons() {
 // Init-Call ausführen, sobald das Skript lädt
 generateSidebarIcons();
 
+
+// ==========================================
+// MODULE 12: TOUCH & TABLET SUPPORT
+// ==========================================
+let initialPinchDistance = null;
+let lastPinchCenter = null;
+
+// Helper: Übersetzt einen Touch in ein simuliertes Maus-Event
+function triggerMouseEvent(eventName, touch) {
+    const mouseEvent = new MouseEvent(eventName, {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        bubbles: true, cancelable: true, view: window
+    });
+    canvas.dispatchEvent(mouseEvent);
+}
+
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        // Ein Finger: Wie ein normaler Mausklick
+        triggerMouseEvent('mousedown', e.touches[0]);
+    } else if (e.touches.length === 2) {
+        // Zwei Finger: Pinch-to-Zoom starten
+        e.preventDefault();
+        isDraggingCanvas = false; // Verhindert Panning-Konflikte
+        initialPinchDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        lastPinchCenter = {
+            x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Verhindert das Scrollen der ganzen Webseite auf Tablets
+
+    if (e.touches.length === 1 && !initialPinchDistance) {
+        // Ein Finger: Wie normales Maus-Verschieben
+        triggerMouseEvent('mousemove', e.touches[0]);
+    } else if (e.touches.length === 2 && initialPinchDistance) {
+        // Zwei Finger: Pinch-to-Zoom & Panning ausführen
+        const currentDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        const currentCenter = {
+            x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+
+        // Zoom-Faktor berechnen
+        const zoomFactor = currentDistance / initialPinchDistance;
+        const newScale = Math.min(Math.max(scale * zoomFactor, 0.05), 5.0);
+
+        // Zoom auf den Mittelpunkt der beiden Finger zentrieren
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const pivotX = (lastPinchCenter.x - rect.left - panX) / scale;
+        const pivotY = (lastPinchCenter.y - rect.top - panY) / scale;
+
+        panX = panX - (pivotX * (newScale - scale));
+        panY = panY - (pivotY * (newScale - scale));
+        scale = newScale;
+
+        // Panning (Verschieben mit zwei Fingern gleichzeitig)
+        panX += currentCenter.x - lastPinchCenter.x;
+        panY += currentCenter.y - lastPinchCenter.y;
+
+        initialPinchDistance = currentDistance;
+        lastPinchCenter = currentCenter;
+
+        draw();
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) {
+        initialPinchDistance = null;
+        lastPinchCenter = null;
+    }
+    if (e.touches.length === 0) {
+        // Letzter Finger losgelassen: Wie Maus-Loslassen
+        triggerMouseEvent('mouseup', e.changedTouches[0]);
+    }
+});
 
     </script>
 </body>
