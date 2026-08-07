@@ -633,17 +633,13 @@
         }
 
         @media print {
-            @page {
-                size: A2 landscape !important;
-                margin: 0;
-            }
+            /* Das @page Format wird nun AUSSCHLIESSLICH über JS gesteuert, um Konflikte zu vermeiden */
 
             body, html {
                 width: 100%;
                 height: 100%;
                 margin: 0;
                 padding: 0;
-                overflow: hidden;
                 background-color: #fff;
             }
 
@@ -652,24 +648,27 @@
             }
 
             #main-content {
-                position: fixed;
+                position: absolute; /* 'fixed' macht auf iOS/Tablets im Druck oft Probleme */
                 top: 0;
                 left: 0;
-                width: 100vw;
-                height: 100vh;
+                width: 100%;
+                height: 100%;
                 background: #fff;
             }
 
             canvas {
-                width: 100vw !important;
-                height: 100vh !important;
+                width: 100% !important; /* % statt vw/vh zwingt das Tablet auf die Papiergröße */
+                height: 100% !important;
+                max-width: 100%;
+                max-height: 100%;
                 object-fit: contain;
                 image-rendering: crisp-edges;
+                display: block;
             }
 
             #print-border {
                 display: block;
-                position: fixed;
+                position: absolute; /* absolut relativ zur Seite */
                 top: 10mm;
                 left: 10mm;
                 right: 10mm;
@@ -681,7 +680,7 @@
 
             #print-report {
                 display: block;
-                position: fixed;
+                position: absolute;
                 bottom: 10mm;
                 right: 130mm;
                 width: auto;
@@ -709,7 +708,7 @@
 
             #print-header {
                 display: block;
-                position: fixed;
+                position: absolute;
                 bottom: 10mm;
                 right: 10mm;
                 width: 110mm;
@@ -722,7 +721,7 @@
 
             #print-statics-table {
                 display: block !important;
-                position: fixed;
+                position: absolute;
                 bottom: 10mm;
                 left: 10mm;
                 width: auto;
@@ -2901,6 +2900,7 @@ canvas.addEventListener('mousedown', (e) => {
 
         document.getElementById('print-report').style.display = 'none';
         document.getElementById('print-header').style.display = 'none';
+        document.getElementById('print-border').style.display = 'none'; // NEU: Versteckt den A2-Rahmen
 
         let tableEl = document.getElementById('print-statics-table');
         tableEl.style.setProperty('display', 'none', 'important');
@@ -2937,6 +2937,7 @@ canvas.addEventListener('mousedown', (e) => {
 
             document.getElementById('print-report').style.display = '';
             document.getElementById('print-header').style.display = '';
+            document.getElementById('print-border').style.display = ''; // NEU: Rahmen wiederherstellen
 
             tableEl.style.display = '';
             tableEl.style.visibility = 'visible';
