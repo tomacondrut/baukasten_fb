@@ -2875,9 +2875,14 @@ function executePrint() {
     const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
     document.title = pdfName;
 
-    // HIER DER FIX: Nur noch Druckaufruf. Das Aufräumen passiert im Event-Listener!
+    // --- MOBILE SNAPSHOT FIX ---
+    window.printSafetyLock = true;
     setTimeout(() => {
         window.print();
+        // Dem mobilen OS 2 Sekunden Zeit für den Screenshot geben, bevor wir den Lock öffnen
+        setTimeout(() => {
+            window.printSafetyLock = false;
+        }, 2000);
     }, 500);
 }
 
@@ -2952,9 +2957,14 @@ function printDiagram() {
     const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
     document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
 
-    // HIER DER FIX: Nur noch Druckaufruf.
+    // --- MOBILE SNAPSHOT FIX ---
+    window.printSafetyLock = true;
     setTimeout(() => {
         window.print();
+        // Dem mobilen OS 2 Sekunden Zeit für den Screenshot geben, bevor wir den Lock öffnen
+        setTimeout(() => {
+            window.printSafetyLock = false;
+        }, 2000);
     }, 500);
 }
 
@@ -2963,7 +2973,8 @@ function printDiagram() {
 // MODULE: PRINT CLEANUP (MOBILE/TABLET FIX)
 // ==========================================
 function cleanupPrint() {
-    if (!window.isPrintingActive) return;
+    // Wenn der Schutz-Lock aktiv ist, ignorieren wir den Aufräum-Befehl
+    if (!window.isPrintingActive || window.printSafetyLock) return;
 
     window.isPrintingAnlage = false;
     window.isPrintingDiagram = false;
@@ -2987,6 +2998,24 @@ function cleanupPrint() {
     smartCenterView(false);
     draw();
 }
+
+// Saubere Event-Listener (doppelte Einträge entfernt)
+window.addEventListener('afterprint', () => {
+    window.printSafetyLock = false; // Desktop bestätigt, dass gedruckt wurde
+    cleanupPrint();
+});
+
+// Mobile Fallback: Wartet brav, bis der Safety Lock abgelaufen ist
+window.addEventListener('focus', () => {
+    if (window.isPrintingActive) {
+        let checkLock = setInterval(() => {
+            if (!window.printSafetyLock) {
+                clearInterval(checkLock);
+                cleanupPrint();
+            }
+        }, 500);
+    }
+});
 
 // Event-Listener für sauberes Aufräumen (Löst den Tablet Überlappungs-Bug)
 window.addEventListener('afterprint', cleanupPrint);
