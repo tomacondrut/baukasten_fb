@@ -1298,36 +1298,67 @@
         return nativeX < (el.width / el.scaleFactor) / 2;
     }
 
-    function getTransformOps(el) {
-        let ops = []; let curr = el; let root = getChainRoot(el); let path = [];
-        while (curr) { path.push(curr); curr = curr.parent; } path.reverse();
-
-        if (root && root.chainAngle) {
-            let rootFlanges = getFlangeConnectors(root);
-            let cx = root.x, cy = root.y;
-            if (rootFlanges.left) {
-                let off = getLocalFlangeOffset(root, rootFlanges.left);
-                cx = root.x + off.x; cy = root.y + off.y;
-            }
-            ops.push({ type: 'rotate', angle: root.chainAngle, cx: cx, cy: cy });
+function getRootAngleInfo(root) {
+    if (root.type !== 'knick') return { offset: 0, isRTL: false };
+    let hasLeftChild = false;
+    let hasRightChild = false;
+    elements.forEach(c => {
+        if (c.parent === root && c.type !== 'assembly_leg') {
+            // Ermittelt, ob das Kind physisch links oder rechts angebaut ist
+            if (c.x > root.x + root.width * 0.4) hasRightChild = true;
+            else hasLeftChild = true;
         }
-        for (let i = 0; i < path.length - 1; i++) {
-            let node = path[i]; let nextNode = path[i + 1];
-            let isRightOfParent = nextNode.x > node.x + (node.width / node.scaleFactor) * node.scaleFactor * 0.4;
-            let parentAngle = 0; if (node.type === 'knick') parentAngle = isRightOfParent ? (node.knickAngle / 2) : -(node.knickAngle / 2);
-            let childAngle = 0; if (nextNode.type === 'knick') childAngle = isRightOfParent ? (nextNode.knickAngle / 2) : -(nextNode.knickAngle / 2);
-            let relAngle = parentAngle + childAngle;
+    });
+    let builtRTL = (hasLeftChild && !hasRightChild);
+    let offset = builtRTL ? -(root.knickAngle / 2) : (root.knickAngle / 2);
+    return { offset: offset, isRTL: builtRTL };
+}
 
-            if (relAngle !== 0) {
-                let pFlanges = getFlangeConnectors(node);
-                let pConn = isRightOfParent ? pFlanges.right : pFlanges.left;
-                let pivotX = node.x, pivotY = node.y;
-                if (pConn) { let off = getLocalFlangeOffset(node, pConn); pivotX = node.x + off.x; pivotY = node.y + off.y; }
-                ops.push({ type: 'rotate', angle: relAngle, cx: pivotX, cy: pivotY });
-            }
+
+function getTransformOps(el) {
+    let ops = []; let curr = el; let root = getChainRoot(el); let path = [];
+    while (curr) { path.push(curr); curr = curr.parent; } path.reverse();
+
+    if (root) {
+        let rootFlanges = getFlangeConnectors(root);
+        let cx = root.x, cy = root.y;
+
+        // Holt sich den bereinigten Offset und die Richtung aus dem neuen Helper
+        let rootInfo = getRootAngleInfo(root);
+        let rootAngle = (root.chainAngle || 0) + rootInfo.offset;
+
+        // Pivot-Punkt für die Rotation auf die "flache" Start-Seite legen
+        if (rootInfo.isRTL && rootFlanges.right) {
+            let off = getLocalFlangeOffset(root, rootFlanges.right);
+            cx = root.x + off.x; cy = root.y + off.y;
+        } else if (!rootInfo.isRTL && rootFlanges.left) {
+            let off = getLocalFlangeOffset(root, rootFlanges.left);
+            cx = root.x + off.x; cy = root.y + off.y;
+        } else if (rootFlanges.left || rootFlanges.right) {
+            let off = getLocalFlangeOffset(root, rootFlanges.left || rootFlanges.right);
+            cx = root.x + off.x; cy = root.y + off.y;
         }
-        return ops;
+
+        ops.push({ type: 'rotate', angle: rootAngle, cx: cx, cy: cy });
     }
+
+    for (let i = 0; i < path.length - 1; i++) {
+        let node = path[i]; let nextNode = path[i + 1];
+        let isRightOfParent = nextNode.x > node.x + (node.width / node.scaleFactor) * node.scaleFactor * 0.4;
+        let parentAngle = 0; if (node.type === 'knick') parentAngle = isRightOfParent ? (node.knickAngle / 2) : -(node.knickAngle / 2);
+        let childAngle = 0; if (nextNode.type === 'knick') childAngle = isRightOfParent ? (nextNode.knickAngle / 2) : -(nextNode.knickAngle / 2);
+        let relAngle = parentAngle + childAngle;
+
+        if (relAngle !== 0) {
+            let pFlanges = getFlangeConnectors(node);
+            let pConn = isRightOfParent ? pFlanges.right : pFlanges.left;
+            let pivotX = node.x, pivotY = node.y;
+            if (pConn) { let off = getLocalFlangeOffset(node, pConn); pivotX = node.x + off.x; pivotY = node.y + off.y; }
+            ops.push({ type: 'rotate', angle: relAngle, cx: pivotX, cy: pivotY });
+        }
+    }
+    return ops;
+}
 
     function getGlobalAngle(el) {
         let ops = getTransformOps(el); let sum = 0; for (let o of ops) sum += o.angle; return sum;
@@ -2025,8 +2056,9 @@ canvas.addEventListener('mousedown', (e) => {
                 }
                 hit.parent = null;
 
-                // Den ermittelten echten Winkel nun als neuen Basis-Winkel (chainAngle) setzen
-                hit.chainAngle = currentGlobalAngle;
+                // NEU: Abzug des Root-Offsets! Verhindert die kumulative Verdrehung bei Knick-Modulen
+                let rootInfo = getRootAngleInfo(hit);
+                hit.chainAngle = currentGlobalAngle - rootInfo.offset;
                 path.forEach(node => { if (node !== hit) node.chainAngle = 0; });
 
                 recalculateChainAlignment(hit);
@@ -2802,153 +2834,174 @@ canvas.addEventListener('mousedown', (e) => {
         document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
     }
 
-    function executePrint() {
-        document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
-        document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
-        document.getElementById('toggle-massketten').checked = document.getElementById('print-opt-massketten').checked;
+function executePrint() {
+    document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
+    document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
+    document.getElementById('toggle-massketten').checked = document.getElementById('print-opt-massketten').checked;
 
-        document.getElementById('print-obj-nr').innerText = projMeta.objNr;
-        document.getElementById('print-fb-id').innerText = projMeta.fbId;
-        document.getElementById('print-ersteller').innerText = projMeta.ersteller || "-";
-        document.getElementById('print-date').innerText = new Date().toLocaleDateString('de-DE');
-        document.getElementById('print-report-elements').innerHTML = document.getElementById('stat-elements').innerHTML;
-        document.getElementById('print-report-weight').innerHTML = document.getElementById('stat-weight').innerHTML;
+    document.getElementById('print-obj-nr').innerText = projMeta.objNr;
+    document.getElementById('print-fb-id').innerText = projMeta.fbId;
+    document.getElementById('print-ersteller').innerText = projMeta.ersteller || "-";
+    document.getElementById('print-date').innerText = new Date().toLocaleDateString('de-DE');
+    document.getElementById('print-report-elements').innerHTML = document.getElementById('stat-elements').innerHTML;
+    document.getElementById('print-report-weight').innerHTML = document.getElementById('stat-weight').innerHTML;
 
-        updatePrintStaticsTable();
-        closePrintModal();
+    updatePrintStaticsTable();
+    closePrintModal();
 
-        let printStyleEl = document.getElementById('dynamic-print-style');
-        if (!printStyleEl) {
-            printStyleEl = document.createElement('style');
-            printStyleEl.id = 'dynamic-print-style';
-            document.head.appendChild(printStyleEl);
-        }
-
-        printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
-        let printW_px = 594 * 3.7795;
-        let printH_px = 420 * 3.7795;
-
-        window.isPrintingAnlage = true;
-        window.isPrintingActive = true;
-        window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
-
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = printW_px * window.printDpr;
-        canvas.height = printH_px * window.printDpr;
-
-        smartCenterView(true, printW_px, printH_px);
-        draw();
-
-        const originalTitle = document.title;
-        const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
-        document.title = pdfName;
-
-        setTimeout(() => {
-            window.print();
-            document.title = originalTitle;
-
-            window.isPrintingAnlage = false;
-            window.isPrintingActive = false;
-
-            canvas.width = rect.width * (window.devicePixelRatio || 1);
-            canvas.height = rect.height * (window.devicePixelRatio || 1);
-            smartCenterView(false);
-            draw();
-        }, 500);
+    let printStyleEl = document.getElementById('dynamic-print-style');
+    if (!printStyleEl) {
+        printStyleEl = document.createElement('style');
+        printStyleEl.id = 'dynamic-print-style';
+        document.head.appendChild(printStyleEl);
     }
 
-    function printDiagram() {
-        let toggle = document.getElementById('toggle-diagramme');
-        if (!toggle) return;
-        if (!toggle.checked) {
-            toggle.checked = true;
-            draw();
-        }
+    printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
+    let printW_px = 594 * 3.7795;
+    let printH_px = 420 * 3.7795;
 
-        if (!window.currentDiagramBounds) {
-            showNotification("Keine Anlage für das Diagramm vorhanden.");
-            return;
-        }
+    window.isPrintingAnlage = true;
+    window.isPrintingActive = true;
+    window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
 
-        updatePrintStaticsTable();
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = printW_px * window.printDpr;
+    canvas.height = printH_px * window.printDpr;
 
-        window.isPrintingDiagram = true;
-        window.isPrintingActive = true;
-        window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
+    smartCenterView(true, printW_px, printH_px);
+    draw();
 
-        let printW_px = 297 * 3.7795;
-        let printH_px = 210 * 3.7795;
+    window.originalTitle = document.title;
+    const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
+    document.title = pdfName;
 
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = printW_px * window.printDpr;
-        canvas.height = printH_px * window.printDpr;
+    // HIER DER FIX: Nur noch Druckaufruf. Das Aufräumen passiert im Event-Listener!
+    setTimeout(() => {
+        window.print();
+    }, 500);
+}
 
-        let b = window.currentDiagramBounds;
-        let bboxW = b.maxX - b.minX;
-        let bboxH = b.maxY - b.minY;
-        let centerX = b.minX + bboxW / 2;
+function printDiagram() {
+    let toggle = document.getElementById('toggle-diagramme');
+    if (!toggle) return;
+    if (!toggle.checked) {
+        toggle.checked = true;
+        draw();
+    }
 
-        const paddingX = 180;
-        const paddingY = 80;
-        const scaleX = (printW_px - paddingX * 2) / bboxW;
-        const scaleY = (printH_px - paddingY * 2) / bboxH;
+    if (!window.currentDiagramBounds) {
+        showNotification("Keine Anlage für das Diagramm vorhanden.");
+        return;
+    }
 
-        scale = Math.min(scaleX, scaleY);
+    updatePrintStaticsTable();
 
-        panX = (printW_px / 2) - (centerX * scale);
-        panY = paddingY - (b.minY * scale);
+    window.isPrintingDiagram = true;
+    window.isPrintingActive = true;
+    window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
 
-        document.getElementById('print-report').style.display = 'none';
-        document.getElementById('print-header').style.display = 'none';
-        document.getElementById('print-border').style.display = 'none'; // NEU: Versteckt den A2-Rahmen
+    let printW_px = 297 * 3.7795;
+    let printH_px = 210 * 3.7795;
 
-        let tableEl = document.getElementById('print-statics-table');
-        tableEl.style.setProperty('display', 'none', 'important');
-        tableEl.style.visibility = 'hidden';
-        tableEl.style.opacity = '0';
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = printW_px * window.printDpr;
+    canvas.height = printH_px * window.printDpr;
 
-        let printStyleEl = document.getElementById('dynamic-print-style');
-        if (!printStyleEl) {
-            printStyleEl = document.createElement('style');
-            printStyleEl.id = 'dynamic-print-style';
-            document.head.appendChild(printStyleEl);
-        }
+    let b = window.currentDiagramBounds;
+    let bboxW = b.maxX - b.minX;
+    let bboxH = b.maxY - b.minY;
+    let centerX = b.minX + bboxW / 2;
 
-        printStyleEl.innerHTML = `
+    const paddingX = 180;
+    const paddingY = 80;
+    const scaleX = (printW_px - paddingX * 2) / bboxW;
+    const scaleY = (printH_px - paddingY * 2) / bboxH;
+
+    scale = Math.min(scaleX, scaleY);
+
+    panX = (printW_px / 2) - (centerX * scale);
+    panY = paddingY - (b.minY * scale);
+
+    document.getElementById('print-report').style.display = 'none';
+    document.getElementById('print-header').style.display = 'none';
+    document.getElementById('print-border').style.display = 'none';
+
+    let tableEl = document.getElementById('print-statics-table');
+    tableEl.style.setProperty('display', 'none', 'important');
+    tableEl.style.visibility = 'hidden';
+    tableEl.style.opacity = '0';
+
+    let printStyleEl = document.getElementById('dynamic-print-style');
+    if (!printStyleEl) {
+        printStyleEl = document.createElement('style');
+        printStyleEl.id = 'dynamic-print-style';
+        document.head.appendChild(printStyleEl);
+    }
+
+    printStyleEl.innerHTML = `
             @media print {
                 @page { size: A4 landscape !important; margin: 0; }
                 body #print-statics-table { display: none !important; opacity: 0 !important; visibility: hidden !important; }
             }
         `;
 
-        draw();
+    draw();
 
-        const originalTitle = document.title;
-        const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
-        const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
-        document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
+    window.originalTitle = document.title;
+    const cleanObjNr = projMeta.objNr !== "OBJEKT-NR." ? projMeta.objNr : "Projekt";
+    const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
+    document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
 
-        setTimeout(() => {
-            window.print();
+    // HIER DER FIX: Nur noch Druckaufruf.
+    setTimeout(() => {
+        window.print();
+    }, 500);
+}
 
-            document.title = originalTitle;
-            window.isPrintingDiagram = false;
-            window.isPrintingActive = false;
 
-            document.getElementById('print-report').style.display = '';
-            document.getElementById('print-header').style.display = '';
-            document.getElementById('print-border').style.display = ''; // NEU: Rahmen wiederherstellen
+// ==========================================
+// MODULE: PRINT CLEANUP (MOBILE/TABLET FIX)
+// ==========================================
+function cleanupPrint() {
+    if (!window.isPrintingActive) return;
 
-            tableEl.style.display = '';
-            tableEl.style.visibility = 'visible';
-            tableEl.style.opacity = '1';
+    window.isPrintingAnlage = false;
+    window.isPrintingDiagram = false;
+    window.isPrintingActive = false;
+    document.title = window.originalTitle || document.title;
 
-            canvas.width = rect.width * (window.devicePixelRatio || 1);
-            canvas.height = rect.height * (window.devicePixelRatio || 1);
-            smartCenterView(false);
-            draw();
-        }, 500);
+    document.getElementById('print-report').style.display = '';
+    document.getElementById('print-header').style.display = '';
+    document.getElementById('print-border').style.display = '';
+
+    let tableEl = document.getElementById('print-statics-table');
+    if (tableEl) {
+        tableEl.style.display = '';
+        tableEl.style.visibility = 'visible';
+        tableEl.style.opacity = '1';
     }
+
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * (window.devicePixelRatio || 1);
+    canvas.height = rect.height * (window.devicePixelRatio || 1);
+    smartCenterView(false);
+    draw();
+}
+
+// Event-Listener für sauberes Aufräumen (Löst den Tablet Überlappungs-Bug)
+window.addEventListener('afterprint', cleanupPrint);
+window.addEventListener('focus', () => {
+    if (window.isPrintingActive) setTimeout(cleanupPrint, 300);
+});
+
+// Greift bei Desktop-Rechnern zuverlässig nach dem Druck
+window.addEventListener('afterprint', cleanupPrint);
+
+// Fallback für iOS/Android (fangen den Moment ab, in dem der User vom Print-Dialog zum Tab zurückkehrt)
+window.addEventListener('focus', () => {
+    if (window.isPrintingActive) setTimeout(cleanupPrint, 300);
+});
+
 
     // ==========================================
     // MODULE 11: MAIN DRAW LOOP
