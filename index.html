@@ -1013,15 +1013,19 @@
     let currentSettingKey = null;
     let isAltDown = false;
 
-    window.addEventListener('resize', () => {
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-        draw();
-    });
+window.addEventListener('resize', () => {
+    // FIX: Verhindert, dass Android beim Öffnen des Druck-Dialogs 
+    // die hochauflösende A4/A2-Canvas zerstört!
+    if (window.isPrintingActive) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    draw();
+});
     window.dispatchEvent(new Event('resize'));
 
     window.addEventListener('keydown', (e) => {
@@ -2834,6 +2838,9 @@ canvas.addEventListener('mousedown', (e) => {
         document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
     }
 
+// ==========================================
+// MODULE 10: PRINT ENGINE
+// ==========================================
 function executePrint() {
     document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
     document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
@@ -2849,6 +2856,9 @@ function executePrint() {
     updatePrintStaticsTable();
     closePrintModal();
 
+    // 1. Fallback-Button erstellen (falls Afterprint auf sehr alten Tablets hängt)
+    createPrintFallbackButton();
+
     let printStyleEl = document.getElementById('dynamic-print-style');
     if (!printStyleEl) {
         printStyleEl = document.createElement('style');
@@ -2856,7 +2866,13 @@ function executePrint() {
         document.head.appendChild(printStyleEl);
     }
 
-    printStyleEl.innerHTML = `@media print { @page { size: A2 landscape !important; margin: 0; } }`;
+    printStyleEl.innerHTML = `
+            @media print { 
+                @page { size: A2 landscape !important; margin: 0; } 
+                body #print-fallback-btn { display: none !important; }
+            }
+        `;
+
     let printW_px = 594 * 3.7795;
     let printH_px = 420 * 3.7795;
 
@@ -2875,14 +2891,10 @@ function executePrint() {
     const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
     document.title = pdfName;
 
-    // --- MOBILE SNAPSHOT FIX ---
-    window.printSafetyLock = true;
+    // Aufruf starten. KEIN Timeout-Cleanup mehr!
     setTimeout(() => {
         window.print();
-        // Dem mobilen OS 2 Sekunden Zeit für den Screenshot geben, bevor wir den Lock öffnen
-        setTimeout(() => {
-            window.printSafetyLock = false;
-        }, 2000);
+        document.getElementById('print-fallback-btn').style.display = 'block';
     }, 500);
 }
 
@@ -2900,6 +2912,7 @@ function printDiagram() {
     }
 
     updatePrintStaticsTable();
+    createPrintFallbackButton();
 
     window.isPrintingDiagram = true;
     window.isPrintingActive = true;
@@ -2923,7 +2936,6 @@ function printDiagram() {
     const scaleY = (printH_px - paddingY * 2) / bboxH;
 
     scale = Math.min(scaleX, scaleY);
-
     panX = (printW_px / 2) - (centerX * scale);
     panY = paddingY - (b.minY * scale);
 
@@ -2947,6 +2959,7 @@ function printDiagram() {
             @media print {
                 @page { size: A4 landscape !important; margin: 0; }
                 body #print-statics-table { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+                body #print-fallback-btn { display: none !important; }
             }
         `;
 
@@ -2957,24 +2970,31 @@ function printDiagram() {
     const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
     document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
 
-    // --- MOBILE SNAPSHOT FIX ---
-    window.printSafetyLock = true;
+    // Aufruf starten. KEIN Timeout-Cleanup mehr!
     setTimeout(() => {
         window.print();
-        // Dem mobilen OS 2 Sekunden Zeit für den Screenshot geben, bevor wir den Lock öffnen
-        setTimeout(() => {
-            window.printSafetyLock = false;
-        }, 2000);
+        document.getElementById('print-fallback-btn').style.display = 'block';
     }, 500);
 }
 
+// ==========================================
+// MODULE: PRINT CLEANUP (MOBILE/TABLET FIX V2)
+// ==========================================
+function createPrintFallbackButton() {
+    let btn = document.getElementById('print-fallback-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'print-fallback-btn';
+        btn.innerHTML = '✖ Druckansicht verlassen';
+        btn.className = 'btn btn-danger';
+        btn.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:10000; display:none; box-shadow:0 10px 25px rgba(0,0,0,0.6); font-size:1.1rem; padding:12px 24px; border-radius:30px; border: 2px solid #fff; cursor: pointer;';
+        btn.onclick = cleanupPrint;
+        document.body.appendChild(btn);
+    }
+}
 
-// ==========================================
-// MODULE: PRINT CLEANUP (MOBILE/TABLET FIX)
-// ==========================================
 function cleanupPrint() {
-    // Wenn der Schutz-Lock aktiv ist, ignorieren wir den Aufräum-Befehl
-    if (!window.isPrintingActive || window.printSafetyLock) return;
+    if (!window.isPrintingActive) return;
 
     window.isPrintingAnlage = false;
     window.isPrintingDiagram = false;
@@ -2984,6 +3004,9 @@ function cleanupPrint() {
     document.getElementById('print-report').style.display = '';
     document.getElementById('print-header').style.display = '';
     document.getElementById('print-border').style.display = '';
+
+    let fbBtn = document.getElementById('print-fallback-btn');
+    if (fbBtn) fbBtn.style.display = 'none';
 
     let tableEl = document.getElementById('print-statics-table');
     if (tableEl) {
@@ -2998,6 +3021,12 @@ function cleanupPrint() {
     smartCenterView(false);
     draw();
 }
+
+// Das ist das EINZIGE native Event, dem wir vertrauen dürfen.
+// Feuert auf PC und modernen Tablets exakt in der Sekunde, in der der Print-Dialog zugeht.
+window.addEventListener('afterprint', cleanupPrint);
+
+// (Der fehlerhafte 'focus' Event-Listener wurde hier komplett gelöscht!)
 
 // Saubere Event-Listener (doppelte Einträge entfernt)
 window.addEventListener('afterprint', () => {
