@@ -2816,31 +2816,49 @@ canvas.addEventListener('mousedown', (e) => {
 
         ctx.restore();
     }
+/// ==========================================
+// MODULE 10: PRINT ENGINE (MOBILE SAFE OVERLAY FIX)
+// ==========================================
+function updatePrintStaticsTable() {
+    let staticsTableHtml = '';
+    getSystems().forEach((group) => {
+        let statics = calculateSystemStatics(group);
+        if (statics && statics.legItems.length > 0) {
+            staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
+            statics.legItems.forEach(item => {
+                let valTotal = Math.abs(item.forceKN);
+                let valHalf = (valTotal / 2).toFixed(2);
+                let state = item.forceKN < 0 ? ' (ZUG)' : '';
+                staticsTableHtml += `${item.label} = 2 &times; ${valHalf} kN${state}<br>`;
+            });
+            staticsTableHtml += `</div>`;
+        }
+    });
+    document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+}
 
-    // ==========================================
-    // MODULE 10: PRINT ENGINE
-    // ==========================================
-    function updatePrintStaticsTable() {
-        let staticsTableHtml = '';
-        getSystems().forEach((group) => {
-            let statics = calculateSystemStatics(group);
-            if (statics && statics.legItems.length > 0) {
-                staticsTableHtml += `<div style="margin-bottom: 2mm;">`;
-                statics.legItems.forEach(item => {
-                    let valTotal = Math.abs(item.forceKN);
-                    let valHalf = (valTotal / 2).toFixed(2);
-                    let state = item.forceKN < 0 ? ' (ZUG)' : '';
-                    staticsTableHtml += `${item.label} = 2 &times; ${valHalf} kN${state}<br>`;
-                });
-                staticsTableHtml += `</div>`;
-            }
-        });
-        document.getElementById('print-statics-table-content').innerHTML = staticsTableHtml || "Keine Stützen.";
+// NEU: Ein unzerstörbares Fullscreen-Overlay, das die App während des Drucks "einfriert"
+function showPrintOverlay() {
+    let overlay = document.getElementById('print-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'print-overlay';
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.9); z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column; backdrop-filter: blur(5px);';
+        overlay.innerHTML = `
+            <h2 style="color:#38bdf8; margin-bottom: 15px; font-size: 2.2rem; text-transform:uppercase;">🖨️ Druck-Modus aktiv</h2>
+            <p style="color:#cbd5e1; margin-bottom: 30px; font-size: 1.1rem;">Bitte schließe zuerst die Druckvorschau deines Geräts.</p>
+            <button class="btn btn-danger" onclick="cleanupPrint(true)" style="font-size: 1.3rem; padding: 16px 32px; border-radius: 10px; cursor: pointer; border: 2px solid #ef4444; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">✖ Zurück zum Editor</button>
+        `;
+        document.body.appendChild(overlay);
     }
+    overlay.style.display = 'flex';
+}
 
-// ==========================================
-// MODULE 10: PRINT ENGINE
-// ==========================================
+function hidePrintOverlay() {
+    let overlay = document.getElementById('print-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
 function executePrint() {
     document.getElementById('toggle-forces').checked = document.getElementById('print-opt-forces').checked;
     document.getElementById('toggle-koten').checked = document.getElementById('print-opt-koten').checked;
@@ -2856,9 +2874,6 @@ function executePrint() {
     updatePrintStaticsTable();
     closePrintModal();
 
-    // 1. Fallback-Button erstellen (falls Afterprint auf sehr alten Tablets hängt)
-    createPrintFallbackButton();
-
     let printStyleEl = document.getElementById('dynamic-print-style');
     if (!printStyleEl) {
         printStyleEl = document.createElement('style');
@@ -2866,17 +2881,19 @@ function executePrint() {
         document.head.appendChild(printStyleEl);
     }
 
+    // A2 Querformat erzwingen und Overlay auf dem Papier verstecken
     printStyleEl.innerHTML = `
-            @media print { 
-                @page { size: A2 landscape !important; margin: 0; } 
-                body #print-fallback-btn { display: none !important; }
-            }
-        `;
+        @media print { 
+            @page { size: A2 landscape !important; margin: 0; } 
+            body #print-overlay { display: none !important; opacity: 0 !important; visibility: hidden !important; } 
+        }
+    `;
 
     let printW_px = 594 * 3.7795;
     let printH_px = 420 * 3.7795;
 
     window.isPrintingAnlage = true;
+    window.isPrintingDiagram = false;
     window.isPrintingActive = true;
     window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
 
@@ -2891,10 +2908,9 @@ function executePrint() {
     const pdfName = (projMeta.objNr !== "OBJEKT-NR." || projMeta.fbId !== "FÖRDERBAND-ID") ? `${projMeta.objNr}_${projMeta.fbId}` : `Forderband_Baukasten_Pro`;
     document.title = pdfName;
 
-    // Aufruf starten. KEIN Timeout-Cleanup mehr!
     setTimeout(() => {
+        showPrintOverlay(); // Schützt die Canvas vor Android's Live-Render
         window.print();
-        document.getElementById('print-fallback-btn').style.display = 'block';
     }, 500);
 }
 
@@ -2912,8 +2928,8 @@ function printDiagram() {
     }
 
     updatePrintStaticsTable();
-    createPrintFallbackButton();
 
+    window.isPrintingAnlage = false;
     window.isPrintingDiagram = true;
     window.isPrintingActive = true;
     window.printDpr = Math.max(window.devicePixelRatio || 1, 4.0);
@@ -2944,9 +2960,11 @@ function printDiagram() {
     document.getElementById('print-border').style.display = 'none';
 
     let tableEl = document.getElementById('print-statics-table');
-    tableEl.style.setProperty('display', 'none', 'important');
-    tableEl.style.visibility = 'hidden';
-    tableEl.style.opacity = '0';
+    if (tableEl) {
+        tableEl.style.setProperty('display', 'none', 'important');
+        tableEl.style.visibility = 'hidden';
+        tableEl.style.opacity = '0';
+    }
 
     let printStyleEl = document.getElementById('dynamic-print-style');
     if (!printStyleEl) {
@@ -2955,13 +2973,14 @@ function printDiagram() {
         document.head.appendChild(printStyleEl);
     }
 
+    // A4 Querformat erzwingen und Overlay auf dem Papier verstecken
     printStyleEl.innerHTML = `
-            @media print {
-                @page { size: A4 landscape !important; margin: 0; }
-                body #print-statics-table { display: none !important; opacity: 0 !important; visibility: hidden !important; }
-                body #print-fallback-btn { display: none !important; }
-            }
-        `;
+        @media print {
+            @page { size: landscape !important; margin: 0; }
+            body #print-statics-table { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+            body #print-overlay { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+        }
+    `;
 
     draw();
 
@@ -2970,43 +2989,25 @@ function printDiagram() {
     const cleanFbId = projMeta.fbId !== "FÖRDERBAND-ID" ? projMeta.fbId : "Band";
     document.title = `Schnittgroessen_${cleanObjNr}_${cleanFbId}`;
 
-    // Aufruf starten. KEIN Timeout-Cleanup mehr!
     setTimeout(() => {
+        showPrintOverlay(); // Schützt die Canvas
         window.print();
-        document.getElementById('print-fallback-btn').style.display = 'block';
     }, 500);
 }
 
-// ==========================================
-// MODULE: PRINT CLEANUP (MOBILE/TABLET FIX V2)
-// ==========================================
-function createPrintFallbackButton() {
-    let btn = document.getElementById('print-fallback-btn');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'print-fallback-btn';
-        btn.innerHTML = '✖ Druckansicht verlassen';
-        btn.className = 'btn btn-danger';
-        btn.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:10000; display:none; box-shadow:0 10px 25px rgba(0,0,0,0.6); font-size:1.1rem; padding:12px 24px; border-radius:30px; border: 2px solid #fff; cursor: pointer;';
-        btn.onclick = cleanupPrint;
-        document.body.appendChild(btn);
-    }
-}
-
-function cleanupPrint() {
-    if (!window.isPrintingActive) return;
+function cleanupPrint(force = false) {
+    if (!window.isPrintingActive && !force) return;
 
     window.isPrintingAnlage = false;
     window.isPrintingDiagram = false;
     window.isPrintingActive = false;
-    document.title = window.originalTitle || document.title;
+    if (window.originalTitle) document.title = window.originalTitle;
 
     document.getElementById('print-report').style.display = '';
     document.getElementById('print-header').style.display = '';
     document.getElementById('print-border').style.display = '';
 
-    let fbBtn = document.getElementById('print-fallback-btn');
-    if (fbBtn) fbBtn.style.display = 'none';
+    hidePrintOverlay();
 
     let tableEl = document.getElementById('print-statics-table');
     if (tableEl) {
@@ -3021,45 +3022,8 @@ function cleanupPrint() {
     smartCenterView(false);
     draw();
 }
-
-// Das ist das EINZIGE native Event, dem wir vertrauen dürfen.
-// Feuert auf PC und modernen Tablets exakt in der Sekunde, in der der Print-Dialog zugeht.
-window.addEventListener('afterprint', cleanupPrint);
-
-// (Der fehlerhafte 'focus' Event-Listener wurde hier komplett gelöscht!)
-
-// Saubere Event-Listener (doppelte Einträge entfernt)
-window.addEventListener('afterprint', () => {
-    window.printSafetyLock = false; // Desktop bestätigt, dass gedruckt wurde
-    cleanupPrint();
-});
-
-// Mobile Fallback: Wartet brav, bis der Safety Lock abgelaufen ist
-window.addEventListener('focus', () => {
-    if (window.isPrintingActive) {
-        let checkLock = setInterval(() => {
-            if (!window.printSafetyLock) {
-                clearInterval(checkLock);
-                cleanupPrint();
-            }
-        }, 500);
-    }
-});
-
-// Event-Listener für sauberes Aufräumen (Löst den Tablet Überlappungs-Bug)
-window.addEventListener('afterprint', cleanupPrint);
-window.addEventListener('focus', () => {
-    if (window.isPrintingActive) setTimeout(cleanupPrint, 300);
-});
-
-// Greift bei Desktop-Rechnern zuverlässig nach dem Druck
-window.addEventListener('afterprint', cleanupPrint);
-
-// Fallback für iOS/Android (fangen den Moment ab, in dem der User vom Print-Dialog zum Tab zurückkehrt)
-window.addEventListener('focus', () => {
-    if (window.isPrintingActive) setTimeout(cleanupPrint, 300);
-});
-
+// HINWEIS: Alle automatischen `afterprint` und `focus` Event-Listener wurden
+// endgültig gelöscht, da diese den Android-Print-Bug auslösten!
 
     // ==========================================
     // MODULE 11: MAIN DRAW LOOP
@@ -3173,10 +3137,12 @@ window.addEventListener('focus', () => {
         ctx.restore();
     }
 
-    function draw() {
+function draw() {
         const dpr = window.isPrintingActive ? window.printDpr : (window.devicePixelRatio || 1);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // ERZWUNGENER DIAGRAMM-MODUS: Wenn das Diagramm gedruckt wird, 
+        // zeichnen wir NUR die Schnittgrößen auf weißem Grund und brechen danach sofort ab!
         if (window.isPrintingDiagram) {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3186,7 +3152,7 @@ window.addEventListener('focus', () => {
             ctx.scale(scale, scale);
             renderSchnittgroessen();
             ctx.restore();
-            return;
+            return; // Verhindert das Zeichnen der Bänder und Stützen!
         }
 
         ctx.save();
