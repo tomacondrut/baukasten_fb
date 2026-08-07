@@ -31,7 +31,8 @@
 
         body {
             display: flex;
-            height: 100vh;
+            height: 100vh; /* Fallback für sehr alte Browser */
+            height: 100dvh; /* NEU: Dynamische Viewport-Höhe fixt das Tablet-Cropping */
             background-color: #f4f6f8;
             overflow: hidden;
         }
@@ -557,33 +558,44 @@
                 margin-bottom: 10px;
             }
 
-        /* Smartphone (Hoch- & Querformat) - Alles andere ausblenden */
-        @media (max-width: 767px) {
+        /* Smartphone Portrait - WICHTIG: "screen" hinzugefügt, damit es beim Drucken ignoriert wird! */
+        @media screen and (max-width: 767px) {
             body > *:not(#mobile-warning) {
                 display: none !important;
             }
 
             #mobile-warning {
-                display: flex;
+                display: flex !important;
             }
         }
 
-        /* Tablet Optimierungen (Größere Touch-Ziele) */
-        @media (min-width: 768px) and (max-width: 1024px) {
+        /* Smartphone Landscape (Handy quer) - Greift bei Geräten die breit, aber sehr flach sind (wie das S24) */
+        @media screen and (max-width: 950px) and (max-height: 500px) {
+            body > *:not(#mobile-warning) {
+                display: none !important;
+            }
+
+            #mobile-warning {
+                display: flex !important;
+            }
+        }
+
+        /* Tablet Optimierungen (Größere Touch-Ziele) - Auch hier "screen" für den sauberen Druck */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
             .btn {
                 padding: 12px 16px;
                 font-size: 0.95rem;
             }
-            /* Größere Buttons */
+
             .toggle-container {
                 padding: 10px 14px;
             }
-            /* Größere Toggles */
+
             .switch {
                 width: 44px;
                 height: 26px;
             }
-            /* Touch-friendly Schalter */
+
             .slider:before {
                 height: 18px;
                 width: 18px;
@@ -609,7 +621,6 @@
                 padding: 16px 24px;
             }
 
-            /* Sliders dicker machen für fette Finger */
             input[type="range"] {
                 height: 20px;
             }
@@ -1949,10 +1960,13 @@
         }
     }
 
-    function smartCenterView(isPrint = false, printW = null, printH = null) {
-        let targetElements = selectedElements.length > 0 ? selectedElements : elements;
-        if (targetElements.length === 0) { scale = 1; panX = 100; panY = 100; draw(); return; }
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+function smartCenterView(isPrint = false, printW = null, printH = null) {
+    // FIX: Wenn gedruckt wird, IMMER alle Elemente nehmen, sonst nur die Auswahl (falls vorhanden)
+    let targetElements = (selectedElements.length > 0 && !isPrint) ? selectedElements : elements;
+
+    if (targetElements.length === 0) { scale = 1; panX = 100; panY = 100; draw(); return; }
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         targetElements.forEach(el => {
             const b = getElementWorldBounds(el);
             if (b.minX < minX) minX = b.minX; if (b.maxX > maxX) maxX = b.maxX;
@@ -3310,6 +3324,33 @@ document.querySelectorAll('#action-menu input[type="range"]').forEach(slider => 
         this.value = val;
 
         // Simuliert einen physischen Input, um deine bestehenden oninput-Funktionen zu triggern
+        this.dispatchEvent(new Event('input'));
+    });
+});
+
+
+// ==========================================
+// MODULE: NUMBER INPUT MOUSEWHEEL CONTROL
+// ==========================================
+document.querySelectorAll('#array-modal input[type="number"]').forEach(input => {
+    input.addEventListener('wheel', function (e) {
+        e.preventDefault(); // Verhindert das Scrollen des Modals/der Seite
+
+        let step = parseFloat(this.step) || 1;
+        let val = parseInt(this.value) || 1;
+
+        // deltaY < 0 bedeutet Mausrad nach oben drehen (Anzahl erhöhen)
+        if (e.deltaY < 0) {
+            val += step;
+        } else {
+            val -= step;
+        }
+
+        // Min/Max-Grenzen einhalten (z. B. min=1, max=20)
+        if (this.hasAttribute('max')) val = Math.min(parseInt(this.max), val);
+        if (this.hasAttribute('min')) val = Math.max(parseInt(this.min), val);
+
+        this.value = val;
         this.dispatchEvent(new Event('input'));
     });
 });
