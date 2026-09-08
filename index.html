@@ -1220,6 +1220,13 @@ window.addEventListener('resize', () => {
         document.getElementById('stat-elements').innerHTML = `<b>Bänder:</b> ${count2480}x 2480 | ${count3720}x 3720 &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;&nbsp;&nbsp;&nbsp; <b>Knicke:</b> ${knickStr}`;
     }
 
+ // ==========================================
+    // [BREADCRUMB: 2026-09-08 - FIX REDPARTS PERSISTENCE CRASH]
+    // FEHLER: Beim Speichern/Laden von Stützen wurde redParts als leeres Objekt {} gespeichert
+    //         bzw. beim Laden nicht neu mit SVGs befüllt. Sobald isUplift aktiv wurde, crashte drawImage().
+    // LÖSUNG: delete clean.redParts beim Export ergänzt und redParts in loadStagFile() vollständig initialisiert.
+    // ==========================================
+
     // ==========================================
     // MODULE 3: FILE I/O (.stag)
     // ==========================================
@@ -1227,45 +1234,98 @@ window.addEventListener('resize', () => {
         const exportData = {
             meta: projMeta, settings: moduleSettings,
             elements: elements.map(el => {
-                let clean = { ...el }; delete clean.img; delete clean.detailsImg; delete clean.flangeImg; delete clean.bodyData; delete clean.detailsData; delete clean.parts; delete clean.baseData; delete clean.baseImg; clean.parentId = el.parent ? el.parent.id : null; delete clean.parent; return clean;
+                let clean = { ...el };
+                delete clean.img;
+                delete clean.detailsImg;
+                delete clean.flangeImg;
+                delete clean.bodyData;
+                delete clean.detailsData;
+                delete clean.parts;
+                delete clean.redParts;      // FIX: Keine leeren redParts-Stubs mitspeichern
+                delete clean.baseData;
+                delete clean.baseImg;
+                delete clean.redBaseImg;   // FIX: Kein redBaseImg mitspeichern
+                clean.parentId = el.parent ? el.parent.id : null;
+                delete clean.parent;
+                return clean;
             })
         };
         const blob = new Blob([JSON.stringify(exportData)], { type: "text/plain" });
-        const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${projMeta.objNr}_${projMeta.fbId}.stag`; a.click();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projMeta.objNr}_${projMeta.fbId}.stag`;
+        a.click();
     }
 
     async function loadStagFile(e) {
-        const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
         reader.onload = async function(e) {
             try {
-                const data = JSON.parse(e.target.result); clearCanvas();
-                projMeta = data.meta; if(!projMeta.ersteller) projMeta.ersteller = "";
-                document.getElementById('disp-obj-nr').innerText = projMeta.objNr; document.getElementById('disp-fb-id').innerText = projMeta.fbId; document.getElementById('disp-ersteller').innerText = projMeta.ersteller || "-";
+                const data = JSON.parse(e.target.result);
+                clearCanvas();
+                projMeta = data.meta;
+                if (!projMeta.ersteller) projMeta.ersteller = "";
+                document.getElementById('disp-obj-nr').innerText = projMeta.objNr;
+                document.getElementById('disp-fb-id').innerText = projMeta.fbId;
+                document.getElementById('disp-ersteller').innerText = projMeta.ersteller || "-";
                 Object.assign(moduleSettings, data.settings);
+
+                const redColor = '#ef4444';
                 let loadedElements = [];
+
                 for (let saved of data.elements) {
                     let rebuilt = { ...saved, parent: null };
                     if (saved.type === 'assembly_leg') {
-                        rebuilt.parts = { stuetze: await loadSVG('stütze.svg'), teleskop: await loadSVG('teleskopstange.svg'), platte: await loadSVG('stützplatte.svg') };
-                        if (saved.baseType === 'heb120') { rebuilt.baseData = await loadSVG('HEB120.svg'); rebuilt.baseImg = await getTintedImage('HEB120.svg', saved.color || '#0f172a'); }
+                        const legColor = saved.color || moduleSettings['assembly_leg']?.color || '#0f172a';
+                        rebuilt.parts = {
+                            stuetze: { ...(await loadSVG('stütze.svg')), img: await getTintedImage('stütze.svg', legColor) },
+                            teleskop: { ...(await loadSVG('teleskopstange.svg')), img: await getTintedImage('teleskopstange.svg', legColor) },
+                            platte: { ...(await loadSVG('stützplatte.svg')), img: await getTintedImage('stützplatte.svg', legColor) }
+                        };
+                        // FIX: redParts vollständig mit gerenderten roten SVGs aufbauen
+                        rebuilt.redParts = {
+                            stuetze: await getTintedImage('stütze.svg', redColor),
+                            teleskop: await getTintedImage('teleskopstange.svg', redColor),
+                            platte: await getTintedImage('stützplatte.svg', redColor)
+                        };
+
+                        if (saved.baseType === 'heb120') {
+                            rebuilt.baseData = await loadSVG('HEB120.svg');
+                            rebuilt.baseImg = await getTintedImage('HEB120.svg', legColor);
+                            rebuilt.redBaseImg = await getTintedImage('HEB120.svg', redColor);
+                        }
                     } else if (saved.type === 'knick') {
-                        rebuilt.bodyData = await loadSVG('knick_body.svg'); rebuilt.detailsData = await loadSVG('knick_body_details.svg');
-                        rebuilt.detailsImg = await getTintedImage('knick_body_details.svg', saved.color); rebuilt.flangeImg = await getTintedImage('knick_flange.svg', saved.color);
-                    } else { rebuilt.img = await getTintedImage(saved.filename, saved.color); }
+                        rebuilt.bodyData = await loadSVG('knick_body.svg');
+                        rebuilt.detailsData = await loadSVG('knick_body_details.svg');
+                        rebuilt.detailsImg = await getTintedImage('knick_body_details.svg', saved.color);
+                        rebuilt.flangeImg = await getTintedImage('knick_flange.svg', saved.color);
+                    } else {
+                        rebuilt.img = await getTintedImage(saved.filename, saved.color);
+                    }
                     loadedElements.push(rebuilt);
                 }
-                loadedElements.forEach(el => { if (el.parentId) el.parent = loadedElements.find(p => p.id === el.parentId) || null; });
+
+                loadedElements.forEach(el => {
+                    if (el.parentId) el.parent = loadedElements.find(p => p.id === el.parentId) || null;
+                });
                 loadedElements.forEach(el => {
                     el._dragFreeX = el.x;
                     el._dragFreeY = el.y;
                 });
-                elements = loadedElements; updateStats(); smartCenterView();
-            } catch (err) { showNotification("Fehler beim Laden der .stag Datei."); }
+
+                elements = loadedElements;
+                updateStats();
+                smartCenterView();
+            } catch (err) {
+                showNotification("Fehler beim Laden der .stag Datei.");
+            }
             document.getElementById('file-loader').value = "";
         };
         reader.readAsText(file);
     }
-
     // ==========================================
     // MODULE 4: MATH & GEOMETRY
     // ==========================================
